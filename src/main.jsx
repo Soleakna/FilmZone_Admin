@@ -14,9 +14,11 @@ import LoginComponent from "./components/auth/LoginComponent";
 import RootLayout from "./layout/RootLayout";
 
 import AdminLayout from "./layout/AdminLayout";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminMovieLibraryPage from "./pages/admin/AdminMovieLibraryPage";
 import AdminUserAnalyticsPage from "./pages/admin/AdminUserAnalyticsPage";
+import AdminHallsPage from "./pages/admin/AdminHallsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 const router = createBrowserRouter([
@@ -44,7 +46,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <ProtectedRoute>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
@@ -61,6 +67,10 @@ const router = createBrowserRouter([
       {
         path: "analytics",
         element: <AdminUserAnalyticsPage />,
+      },
+      {
+        path: "halls",
+        element: <AdminHallsPage />,
       },
     ],
   },

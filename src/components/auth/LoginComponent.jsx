@@ -1,13 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { ArrowLeft } from "lucide-react";
 import heroImage from "../../assets/others/cinema.png";
-import { setCredentials } from "../../redux/slices/authSlice";
-import { loginUser } from "../../services/mockAuthService";
-import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "../../firebase/config";
+import {
+  setCredentials,
+  selectIsAuthenticated,
+} from "../../redux/slices/authSlice";
+import {
+  useLoginMutation,
+  useLazyGetCurrentUserQuery,
+} from "../../services/api/authApi";
 import { loginSchema } from "../../schemas/authSchema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,9 +19,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 const LoginComponent = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const [loginMutation, { isLoading: isApiSubmitting }] = useLoginMutation();
+  const [getCurrentUser] = useLazyGetCurrentUserQuery();
   const [showPassword, setShowPassword] = useState(false);
-  const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Already logged in? Go straight to the admin dashboard.
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/admin", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const {
     register,
@@ -31,57 +44,75 @@ const LoginComponent = () => {
     },
   });
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     setErrorMsg("");
 
     try {
-      const result = loginUser({
-        email: data.email,
+      // 1. Authenticate with the FilmZone Cinema Booking API
+      const authResponse = await loginMutation({
+        identifier: data.email.trim(),
         password: data.password,
-      });
-      dispatch(setCredentials(result));
-      toast.success(`Welcome back, ${result.user.name}!`);
-      navigate("/");
+      }).unwrap();
+
+      const accessToken = authResponse.accessToken;
+      const refreshToken = authResponse.refreshToken;
+
+      // Keep the refresh token (used later if the access token expires)
+      if (refreshToken) {
+        sessionStorage.setItem("refreshToken", refreshToken);
+      }
+
+      // 2. Fetch the admin profile from the Cinema API (/api/v1/users/me)
+      let userProfile = {
+        email: data.email,
+        name: data.email.split("@")[0],
+        role: "admin",
+      };
+
+      try {
+        const userRes = await getCurrentUser().unwrap();
+        if (userRes) {
+          userProfile = {
+            ...userRes,
+            name:
+              `${userRes.firstName || ""} ${userRes.lastName || ""}`.trim() ||
+              userRes.username ||
+              userRes.email ||
+              data.email,
+            email: userRes.email || data.email,
+            role: "admin",
+          };
+        }
+      } catch (profileErr) {
+        console.warn("User profile fetch:", profileErr);
+      }
+
+      // 3. Save the real access token
+      dispatch(
+        setCredentials({
+          accessToken,
+          token: accessToken,
+          refreshToken,
+          user: userProfile,
+        }),
+      );
+
+      toast.success(`Welcome back, ${userProfile.name}!`);
+      navigate("/admin");
     } catch (err) {
-      const message = err.message || "Invalid credentials. Please try again.";
+      console.error("Login error:", err);
+      const message =
+        err?.data?.message ||
+        err?.data?.error ||
+        (err?.status === 401
+          ? "Invalid email or password. Please try again."
+          : "Login failed. Please check your credentials.");
       setErrorMsg(message);
       toast.error(message);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      setIsSocialSubmitting(true);
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      const fbUser = userCredential.user;
-
-      const authData = {
-        user: {
-          id: fbUser.uid,
-          name: fbUser.displayName || "Google User",
-          email: fbUser.email,
-          role: "user",
-          avatar:
-            fbUser.photoURL ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-              fbUser.displayName || "User",
-            )}`,
-          createdAt: new Date().toISOString(),
-        },
-        token: await fbUser.getIdToken(),
-      };
-
-      dispatch(setCredentials(authData));
-      toast.success(`Welcome back, ${authData.user.name}!`);
-      navigate("/");
-    } catch (err) {
-      if (err.code !== "auth/popup-closed-by-user") {
-        toast.error(err.message || "Google sign in failed");
-      }
-    } finally {
-      setIsSocialSubmitting(false);
-    }
-  };
+  // Google login removed — Firebase tokens are not accepted by the admin Cinema API.
 
   return (
     <div className="relative flex h-full w-full">
@@ -222,27 +253,12 @@ const LoginComponent = () => {
 
             <button
               type="submit"
-              disabled={isSubmitting || isSocialSubmitting}
+              disabled={isSubmitting || isApiSubmitting}
               className="w-full rounded-full bg-primary-red py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer mt-1 disabled:opacity-60"
             >
-              {isSubmitting ? "Logging In..." : "Login"}
+              {isSubmitting || isApiSubmitting ? "Logging In..." : "Login"}
             </button>
           </form>
-
-          <div className="my-4 sm:my-5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-            <span className="text-xs font-semibold text-primary-red">Or</span>
-            <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)] dark:border-neutral-700 dark:bg-neutral-800/70 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700 transition cursor-pointer"
-          >
-            <GoogleIcon />
-            <span>Login with Google</span>
-          </button>
 
           <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 dark:text-neutral-400">
             Don&apos;t have an account?{" "}
@@ -258,33 +274,6 @@ const LoginComponent = () => {
     </div>
   );
 };
-
-const GoogleIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 20 20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M19.6 10.23c0-.68-.06-1.36-.18-2.02H10v3.83h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.33 2.98-7.33Z"
-      fill="#4285F4"
-    />
-    <path
-      d="M10 20c2.7 0 4.96-.9 6.62-2.44l-3.24-2.5c-.9.6-2.06.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H1.06v2.58A10 10 0 0 0 10 20Z"
-      fill="#34A853"
-    />
-    <path
-      d="M4.41 11.9a6 6 0 0 1 0-3.8V5.52H1.06a10 10 0 0 0 0 8.96l3.35-2.58Z"
-      fill="#FBBC05"
-    />
-    <path
-      d="M10 3.98c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.96 9.96 0 0 0 10 0 10 10 0 0 0 1.06 5.52L4.41 8.1C5.2 5.74 7.4 3.98 10 3.98Z"
-      fill="#EA4335"
-    />
-  </svg>
-);
 
 const EyeIcon = () => (
   <svg
