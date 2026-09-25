@@ -1,47 +1,74 @@
-// Uses your cinema backend, not the TMDB base URL.
-// Already set in your .env:  VITE_CINEMA_API_BASE_URL=https://cinema-booking-api.eunglyzhia.com/api/v1
-const BASE_URL = import.meta.env.VITE_CINEMA_API_BASE_URL ?? "";
+import { baseApi } from "./baseApi";
 
-async function request(path, { headers, ...options } = {}) {
-  // Your project has an `auth` folder and a `firebase` folder, so the
-  // cinema API likely expects a bearer token from your own login, not the
-  // TMDB token. Wire up whichever of these matches how you log admins in:
-  //
-  // Firebase:
-  //   const token = await auth.currentUser?.getIdToken();
-  // Custom JWT stored after login:
-  //   const token = localStorage.getItem("token");
-  //
-  // then add `Authorization: `Bearer ${token}`` to the headers below.
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...headers },
-  });
+export const concessionApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getConcessions: builder.query({
+      query: () => "/concessions",
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((c) => ({ type: "Concession", id: c.uuid })),
+              { type: "Concession", id: "LIST" },
+            ]
+          : [{ type: "Concession", id: "LIST" }],
+    }),
 
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      message = body.message || message;
-    } catch {
-      // response had no JSON body
-    }
-    throw new Error(message);
-  }
+    getConcession: builder.query({
+      query: (uuid) => `/concessions/${uuid}`,
+      providesTags: (result, error, uuid) => [{ type: "Concession", id: uuid }],
+    }),
 
-  return res.status === 204 ? null : res.json();
-}
+    createConcession: builder.mutation({
+      query: (body) => ({
+        url: "/concessions",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Concession", id: "LIST" }],
+    }),
 
-export const getConcessions = () => request("/concessions");
+    // API uses PATCH, not PUT, for updates.
+    updateConcession: builder.mutation({
+      query: ({ uuid, ...body }) => ({
+        url: `/concessions/${uuid}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { uuid }) => [
+        { type: "Concession", id: uuid },
+        { type: "Concession", id: "LIST" },
+      ],
+    }),
 
-export const createConcession = (data) =>
-  request("/concessions", { method: "POST", body: JSON.stringify(data) });
+    // Shows/hides an item without deleting it.
+    toggleConcessionStatus: builder.mutation({
+      query: (uuid) => ({
+        url: `/concessions/${uuid}/toggle-status`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, uuid) => [
+        { type: "Concession", id: uuid },
+        { type: "Concession", id: "LIST" },
+      ],
+    }),
 
-export const updateConcession = (uuid, data) =>
-  request(`/concessions/${uuid}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+    // Hard delete — the API's own "/permanent" path, cannot be undone.
+    deleteConcession: builder.mutation({
+      query: (uuid) => ({
+        url: `/concessions/${uuid}/permanent`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Concession", id: "LIST" }],
+    }),
+  }),
+  overrideExisting: false,
+});
 
-export const deleteConcession = (uuid) =>
-  request(`/concessions/${uuid}`, { method: "DELETE" });
+export const {
+  useGetConcessionsQuery,
+  useGetConcessionQuery,
+  useCreateConcessionMutation,
+  useUpdateConcessionMutation,
+  useToggleConcessionStatusMutation,
+  useDeleteConcessionMutation,
+} = concessionApi;

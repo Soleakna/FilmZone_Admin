@@ -1,4 +1,3 @@
-
 const CATEGORY_STYLES = {
   FOOD: "bg-amber-100 text-amber-800",
   DRINK: "bg-sky-100 text-sky-800",
@@ -16,6 +15,7 @@ export default function ConcessionsTable({
   isLoading = false,
   onEdit,
   onDelete,
+  onToggleStatus,
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
@@ -94,6 +94,16 @@ export default function ConcessionsTable({
                     >
                       Edit
                     </button>
+                    {onToggleStatus && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleStatus(item)}
+                        title="Show/hide this item without deleting it"
+                        className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                      >
+                        Toggle status
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => onDelete?.(item)}
