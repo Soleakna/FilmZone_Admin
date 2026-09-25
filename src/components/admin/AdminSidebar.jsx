@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { LayoutDashboard, Film, BarChart2, Building2, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Film, BarChart2, Building2, ArrowLeft, Popcorn } from "lucide-react";
 
 export default function AdminSidebar() {
   const location = useLocation();
@@ -50,6 +50,11 @@ export default function AdminSidebar() {
           <Link to="/admin/halls" className={getNavItemClass("/admin/halls")}>
             <Building2 className="w-4.5 h-4.5 shrink-0" />
             <span>Manage Halls</span>
+          </Link>
+
+          <Link to="/admin/concession" className={getNavItemClass("/admin/concession")}>
+            <Popcorn className="w-4.5 h-4.5 shrink-0" />
+            <span>Concession</span>
           </Link>
 
           <Link
