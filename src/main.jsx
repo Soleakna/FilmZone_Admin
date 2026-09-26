@@ -18,6 +18,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminMovieLibraryPage from "./pages/admin/AdminMovieLibraryPage";
 import AdminUserAnalyticsPage from "./pages/admin/AdminUserAnalyticsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminHallsPage from "./pages/admin/AdminHallsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -63,6 +64,10 @@ const router = createBrowserRouter([
       {
         path: "movies",
         element: <AdminMovieLibraryPage />,
+      },
+      {
+        path: "users",
+        element: <AdminUsersPage />,
       },
       {
         path: "analytics",
