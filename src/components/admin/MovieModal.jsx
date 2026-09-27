@@ -27,6 +27,38 @@ import {
 import { generateDateList } from "../../utils/dateHelpers";
 import { MOCK_MOVIES } from "../../utils/mockData";
 import { toast } from "react-toastify";
+import { useGetHallsQuery } from "../../services/api/hallApi";
+import { hideSeededDemoHalls } from "../../utils/hallVisibility";
+
+// Map an admin-created hall (Cinema API) into the schedule-hall shape used by
+// the day-by-day scheduling UI (mirrors getBaseHallsTemplate entries).
+const mapApiHallToScheduleHall = (apiHall, branchName) => {
+  const hallType = apiHall.hallType || "STANDARD";
+  const isVip = hallType.toUpperCase() === "VIP";
+  return {
+    id: `${apiHall.uuid}-${branchName}`,
+    name: branchName,
+    hallName: apiHall.name,
+    hallType,
+    hallCategory: hallType.toLowerCase(),
+    price: isVip ? 11.0 : 5.0,
+    badges: [hallType],
+    times: ["10:30 AM", "01:15 PM", "04:30 PM"],
+    apiHallUuid: apiHall.uuid,
+    capacity: apiHall.capacity,
+  };
+};
+
+// Build every branch's default hall list from the admin's real halls.
+const buildBranchesFromApiHalls = (apiHalls) =>
+  AVAILABLE_BRANCHES.map((branchName, bi) => ({
+    id: `branch-api-${bi + 1}`,
+    branchName,
+    halls: apiHalls.map((apiHall) =>
+      mapApiHallToScheduleHall(apiHall, branchName),
+    ),
+    scheduleByDate: {},
+  }));
 
 export default function MovieModal({
   isOpen,
@@ -58,6 +90,15 @@ export default function MovieModal({
 
   // Active Date currently being edited by Admin
   const [activeDate, setActiveDate] = useState("2026-08-25");
+
+  // Real halls pulled from the Cinema API. Only the backend demo seeds are
+  // hidden — every real hall is shown in the schedule and the Add-Hall list.
+  const { data: rawApiHalls = [] } = useGetHallsQuery();
+  const apiHalls = useMemo(
+    () => hideSeededDemoHalls(rawApiHalls),
+    [rawApiHalls],
+  );
+  const [hydratedApiHalls, setHydratedApiHalls] = useState(false);
 
   // Generated date list from start date and duration
   const generatedDates = useMemo(() => {
@@ -96,6 +137,7 @@ export default function MovieModal({
   const [customKey, setCustomKey] = useState(() => getTmdbApiKey());
 
   useEffect(() => {
+    setHydratedApiHalls(false);
     if (editingMovie) {
       setTitle(editingMovie.title || "");
       setDuration(editingMovie.duration || "2h 25min");
@@ -137,6 +179,17 @@ export default function MovieModal({
       setActiveDate("2026-08-25");
     }
   }, [editingMovie, isOpen]);
+
+  // Once the API responds, replace the hard-coded template halls with the
+  // real halls (demo seeds hidden) for every branch's day-by-day schedule. We
+  // hydrate even when the filtered list is empty (instead of leaving the
+  // static default template halls behind).
+  useEffect(() => {
+    if (!editingMovie && !hydratedApiHalls && rawApiHalls.length > 0) {
+      setBranches(buildBranchesFromApiHalls(apiHalls));
+      setHydratedApiHalls(true);
+    }
+  }, [editingMovie, hydratedApiHalls, rawApiHalls, apiHalls]);
 
   // Current Branch
   const currentBranch = branches[selectedBranchIdx] || branches[0];
@@ -233,15 +286,26 @@ export default function MovieModal({
   };
 
   // Add Hall (Instant UI update)
-  const handleAddHallToActiveDate = (hallTypeKey) => {
-    const config = HALL_CONFIGS[hallTypeKey];
+  const handleAddHallToActiveDate = (value) => {
+    // Admin-created hall from the Cinema API (selected by its uuid)
+    const apiHall = apiHalls.find((h) => h.uuid === value);
+    if (apiHall) {
+      const { updatedBranches, branch } = getClonedBranchAndSchedule();
+      const dayHalls = branch.scheduleByDate[activeDate];
+
+      dayHalls.push(mapApiHallToScheduleHall(apiHall, branch.branchName));
+      setBranches(updatedBranches);
+      return;
+    }
+
+    const config = HALL_CONFIGS[value];
     if (!config) return;
 
     const { updatedBranches, branch } = getClonedBranchAndSchedule();
     const dayHalls = branch.scheduleByDate[activeDate];
 
     const newHall = {
-      id: `hall-${hallTypeKey}-${Date.now()}`,
+      id: `hall-${value}-${Date.now()}`,
       name: branch.branchName,
       hallName: config.name,
       hallType: config.id,
@@ -782,28 +846,46 @@ export default function MovieModal({
                     className="px-3 py-1.5 bg-white border border-neutral-300 hover:border-[#b90101] rounded-lg text-xs font-bold text-neutral-800 shadow-2xs cursor-pointer transition"
                   >
                     <option value="">+ Add Hall to this day</option>
-                    <optgroup label="🏛️ Standard Hall (Regular & Couple)">
-                      <option value="standard_2d">
-                        Standard Hall — 2D Screen ($5.00)
-                      </option>
-                      <option value="standard_3d">
-                        Standard Hall — 3D RealD Laser ($6.50)
-                      </option>
-                      <option value="standard_screenx">
-                        Standard Hall — ScreenX 270° ($8.00)
-                      </option>
-                    </optgroup>
-                    <optgroup label="👑 VIP Lounge Hall (Motorized Recliners)">
-                      <option value="vip_2d">
-                        VIP Lounge Hall — 2D Recliner ($11.00)
-                      </option>
-                      <option value="vip_3d">
-                        VIP Lounge Hall — 3D RealD VIP ($13.00)
-                      </option>
-                      <option value="vip_screenx">
-                        VIP Lounge Hall — ScreenX VIP ($15.00)
-                      </option>
-                    </optgroup>
+                    {rawApiHalls.length > 0 ? (
+                      <optgroup label="🏛️ Cinema Halls (Live)">
+                        {apiHalls.length > 0 ? (
+                          apiHalls.map((h) => (
+                            <option key={h.uuid} value={h.uuid}>
+                              {h.name} — {h.hallType} ({h.capacity} seats)
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>
+                            No halls created yet — add one in Manage Halls
+                          </option>
+                        )}
+                      </optgroup>
+                    ) : (
+                      <>
+                        <optgroup label="🏛️ Standard Hall (Regular & Couple)">
+                          <option value="standard_2d">
+                            Standard Hall — 2D Screen ($5.00)
+                          </option>
+                          <option value="standard_3d">
+                            Standard Hall — 3D RealD Laser ($6.50)
+                          </option>
+                          <option value="standard_screenx">
+                            Standard Hall — ScreenX 270° ($8.00)
+                          </option>
+                        </optgroup>
+                        <optgroup label="👑 VIP Lounge Hall (Motorized Recliners)">
+                          <option value="vip_2d">
+                            VIP Lounge Hall — 2D Recliner ($11.00)
+                          </option>
+                          <option value="vip_3d">
+                            VIP Lounge Hall — 3D RealD VIP ($13.00)
+                          </option>
+                          <option value="vip_screenx">
+                            VIP Lounge Hall — ScreenX VIP ($15.00)
+                          </option>
+                        </optgroup>
+                      </>
+                    )}
                   </select>
                 </div>
 

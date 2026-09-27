@@ -81,7 +81,7 @@ const ForgotPassword = () => {
           <div className="mb-5 sm:mb-6 flex items-center gap-3 sm:gap-4">
             <Link
               to="/login"
-              className="text-2xl sm:text-3xl lg:text-4xl font-medium text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200 tracking-tight"
+              className="text-2xl sm:text-3xl lg:text-4xl font-medium text-neutral-400 transition-colors hover:text-neutral-600  tracking-tight"
             >
               Log In
             </Link>
@@ -93,17 +93,17 @@ const ForgotPassword = () => {
 
           {isSuccess ? (
             /* Success Card State */
-            <div className="rounded-2xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 text-center space-y-4 animate-in fade-in duration-300">
+            <div className="rounded-2xl bg-neutral-50  border border-neutral-200  p-6 text-center space-y-4 animate-in fade-in duration-300">
               <div className="w-14 h-14 mx-auto rounded-full bg-green-500/10 text-green-500 flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white">
+              <h3 className="text-xl font-bold text-neutral-900 ">
                 Check Your Inbox
               </h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-xs mx-auto">
+              <p className="text-sm text-neutral-600  max-w-xs mx-auto">
                 We've sent a password reset link to:
                 <br />
-                <span className="font-bold text-neutral-900 dark:text-white">
+                <span className="font-bold text-neutral-900 ">
                   {submittedEmail}
                 </span>
               </p>
@@ -120,7 +120,7 @@ const ForgotPassword = () => {
                 <button
                   type="button"
                   onClick={() => setIsSuccess(false)}
-                  className="text-xs font-semibold text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition py-1"
+                  className="text-xs font-semibold text-neutral-500 hover:text-neutral-700  transition py-1"
                 >
                   Try another email
                 </button>
@@ -129,10 +129,10 @@ const ForgotPassword = () => {
           ) : (
             /* Normal Reset Form */
             <>
-              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 ">
                 Reset Your Password
               </h1>
-              <p className="mt-1 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-xs sm:text-sm text-neutral-500 ">
                 Enter your email address and Firebase will send you a real reset
                 link.
               </p>
@@ -145,7 +145,7 @@ const ForgotPassword = () => {
                 <div>
                   <label
                     htmlFor="email"
-                    className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                    className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 "
                   >
                     Email Address
                   </label>
@@ -158,8 +158,8 @@ const ForgotPassword = () => {
                       className={`w-full rounded-full border ${
                         errors.email
                           ? "border-red-500 focus:border-red-500"
-                          : "border-(--border-light-mode) dark:border-(--border-dark-mode)"
-                      } bg-[var(--primary-color-5)] dark:bg-[var(--primary-color-30)] px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs pr-10`}
+                          : "border-(--border-light-mode) "
+                      } bg-[var(--primary-color-5)]  px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900  placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs pr-10`}
                     />
                     <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
                   </div>
@@ -180,16 +180,16 @@ const ForgotPassword = () => {
               </form>
 
               <div className="my-4 sm:my-5 flex items-center gap-3">
-                <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+                <span className="h-px flex-1 bg-neutral-200 " />
                 <span className="text-xs font-semibold text-neutral-400">
                   Or
                 </span>
-                <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+                <span className="h-px flex-1 bg-neutral-200 " />
               </div>
 
               <Link
                 to="/login"
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)] dark:border-neutral-700 dark:bg-neutral-800/70 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-primary-red hover:bg-neutral-50 dark:hover:bg-neutral-700 transition"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)]   py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-primary-red hover:bg-neutral-50  transition"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back To Login</span>
@@ -197,7 +197,7 @@ const ForgotPassword = () => {
             </>
           )}
 
-          <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 ">
             Remember your password?{" "}
             <Link
               to="/login"

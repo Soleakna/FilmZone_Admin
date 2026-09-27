@@ -125,7 +125,7 @@ const SignUpComponent = () => {
           <div className="mb-4 sm:mb-5 flex items-center gap-3 sm:gap-4">
             <Link
               to="/login"
-              className="text-2xl sm:text-3xl lg:text-4xl font-medium text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200 tracking-tight"
+              className="text-2xl sm:text-3xl lg:text-4xl font-medium text-neutral-400 transition-colors hover:text-neutral-600  tracking-tight"
             >
               Log In
             </Link>
@@ -140,7 +140,7 @@ const SignUpComponent = () => {
             <button
               type="button"
               onClick={handleGoogleSignUp}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)] dark:border-neutral-700 dark:bg-neutral-800/70 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700 transition cursor-pointer"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)]   py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-neutral-900  hover:bg-neutral-200  transition cursor-pointer"
             >
               <GoogleIcon />
               <span>Google</span>
@@ -152,7 +152,7 @@ const SignUpComponent = () => {
                   "Facebook registration coming soon! Try Google or Email.",
                 )
               }
-              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)] dark:border-neutral-700  dark:bg-neutral-800/70 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700 transition cursor-pointer"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-(--border-light-mode) bg-[var(--primary-color-5)]    py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-neutral-900  hover:bg-neutral-200  transition cursor-pointer"
             >
               <FacebookIcon />
               <span>Facebook</span>
@@ -160,9 +160,9 @@ const SignUpComponent = () => {
           </div>
 
           <div className="my-3.5 sm:my-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+            <span className="h-px flex-1 bg-neutral-200 " />
             <span className="text-xs font-semibold text-primary-red">Or</span>
-            <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+            <span className="h-px flex-1 bg-neutral-200 " />
           </div>
 
           {errorMsg && (
@@ -179,7 +179,7 @@ const SignUpComponent = () => {
             <div>
               <label
                 htmlFor="fullName"
-                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 "
               >
                 Full Name
               </label>
@@ -191,8 +191,8 @@ const SignUpComponent = () => {
                 className={`w-full rounded-full border ${
                   errors.fullName
                     ? "border-red-500 focus:border-red-500"
-                    : "border-(--border-light-mode) dark:border-(--border-dark-mode)"
-                } bg-[var(--primary-color-5)] dark:bg-[var(--primary-color-30)] px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
+                    : "border-(--border-light-mode) "
+                } bg-[var(--primary-color-5)]  px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900  placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
               />
               {errors.fullName && (
                 <p className="mt-1 text-xs text-red-500 font-medium pl-2">
@@ -204,7 +204,7 @@ const SignUpComponent = () => {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 "
               >
                 Email Address
               </label>
@@ -216,8 +216,8 @@ const SignUpComponent = () => {
                 className={`w-full rounded-full border ${
                   errors.email
                     ? "border-red-500 focus:border-red-500"
-                    : "border-(--border-light-mode) dark:border-(--border-dark-mode)"
-                } bg-[var(--primary-color-5)] dark:bg-[var(--primary-color-30)] px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
+                    : "border-(--border-light-mode) "
+                } bg-[var(--primary-color-5)]  px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900  placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-500 font-medium pl-2">
@@ -229,7 +229,7 @@ const SignUpComponent = () => {
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 "
               >
                 Password
               </label>
@@ -242,13 +242,13 @@ const SignUpComponent = () => {
                   className={`w-full rounded-full border ${
                     errors.password
                       ? "border-red-500 focus:border-red-500"
-                      : "border-(--border-light-mode) dark:border-(--border-dark-mode)"
-                  } bg-[var(--primary-color-5)] dark:bg-[var(--primary-color-30)] px-4 py-2.5 sm:py-3 pr-11 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
+                      : "border-(--border-light-mode) "
+                  } bg-[var(--primary-color-5)]  px-4 py-2.5 sm:py-3 pr-11 text-xs sm:text-sm text-neutral-900  placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600  cursor-pointer"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeIcon /> : <EyeOffIcon />}
@@ -270,7 +270,7 @@ const SignUpComponent = () => {
             </button>
           </form>
 
-          <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 ">
             Already have an account?{" "}
             <Link
               to="/login"

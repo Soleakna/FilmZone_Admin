@@ -158,16 +158,16 @@ const LoginComponent = () => {
             <span className="h-7 sm:h-8 lg:h-9 w-0.5 bg-primary-red rounded-full" />
             <Link
               to="/signup"
-              className="text-2xl sm:text-3xl lg:text-4xl font-medium text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-200 tracking-tight"
+              className="text-2xl sm:text-3xl lg:text-4xl font-medium text-neutral-400 transition-colors hover:text-neutral-600  tracking-tight"
             >
               Sign Up
             </Link>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 ">
             Welcome back!
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+          <p className="mt-1 text-xs sm:text-sm text-neutral-500 ">
             Sign in to book your next movie.
           </p>
 
@@ -185,7 +185,7 @@ const LoginComponent = () => {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 "
               >
                 Email Address
               </label>
@@ -197,8 +197,8 @@ const LoginComponent = () => {
                 className={`w-full rounded-full border ${
                   errors.email
                     ? "border-red-500 focus:border-red-500"
-                    : "border-(--border-light-mode) dark:border-(--border-dark-mode)"
-                } bg-[var(--primary-color-5)] dark:bg-[var(--primary-color-30)] px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
+                    : "border-(--border-light-mode) "
+                } bg-[var(--primary-color-5)]  px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-neutral-900  placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-500 font-medium pl-2">
@@ -210,7 +210,7 @@ const LoginComponent = () => {
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1.5 block text-xs sm:text-sm font-medium text-neutral-700 "
               >
                 Password
               </label>
@@ -223,13 +223,13 @@ const LoginComponent = () => {
                   className={`w-full rounded-full border ${
                     errors.password
                       ? "border-red-500 focus:border-red-500"
-                      : "border-(--border-light-mode) dark:border-(--border-dark-mode)"
-                  } bg-[var(--primary-color-5)] dark:bg-[var(--primary-color-30)] px-4 py-2.5 sm:py-3 pr-11 text-xs sm:text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
+                      : "border-(--border-light-mode) "
+                  } bg-[var(--primary-color-5)]  px-4 py-2.5 sm:py-3 pr-11 text-xs sm:text-sm text-neutral-900  placeholder:text-neutral-400 focus:border-primary-red focus:outline-none transition shadow-xs`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600  cursor-pointer"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeIcon /> : <EyeOffIcon />}
@@ -260,7 +260,7 @@ const LoginComponent = () => {
             </button>
           </form>
 
-          <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="mt-4 sm:mt-5 text-center text-xs text-neutral-500 ">
             Don&apos;t have an account?{" "}
             <Link
               to="/signup"

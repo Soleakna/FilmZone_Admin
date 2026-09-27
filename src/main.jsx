@@ -19,6 +19,7 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminMovieLibraryPage from "./pages/admin/AdminMovieLibraryPage";
 import AdminUserAnalyticsPage from "./pages/admin/AdminUserAnalyticsPage";
 import AdminHallsPage from "./pages/admin/AdminHallsPage";
+import AdminSeatsPage from "./pages/admin/AdminSeatsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 const router = createBrowserRouter([
@@ -71,6 +72,10 @@ const router = createBrowserRouter([
       {
         path: "halls",
         element: <AdminHallsPage />,
+      },
+      {
+        path: "halls/:hallUuid/seats",
+        element: <AdminSeatsPage />,
       },
     ],
   },

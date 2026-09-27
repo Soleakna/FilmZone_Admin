@@ -23,7 +23,7 @@ export default function MovieLibraryHeader({
       </div>
 
       {/* Action Controls */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
         {activePanelId === "MANAGED" && (
           <>
             <button
