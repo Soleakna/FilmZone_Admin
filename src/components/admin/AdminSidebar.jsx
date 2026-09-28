@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { logout } from "../../redux/slices/authSlice";
 import { baseApi } from "../../services/api/baseApi";
+import { Link, useLocation } from "react-router";
+import { LayoutDashboard, Film, BarChart2, Building2, ArrowLeft, Popcorn } from "lucide-react";
 
 export default function AdminSidebar() {
   const location = useLocation();
@@ -78,6 +80,10 @@ export default function AdminSidebar() {
           <Link to="/admin/users" className={getNavItemClass("/admin/users")}>
             <Users className="w-4.5 h-4.5 shrink-0" />
             <span>Manage Users</span>
+           </Link>
+          <Link to="/admin/concession" className={getNavItemClass("/admin/concession")}>
+            <Popcorn className="w-4.5 h-4.5 shrink-0" />
+            <span>Concession</span>
           </Link>
 
           <Link
