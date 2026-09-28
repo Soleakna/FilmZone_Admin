@@ -1,18 +1,8 @@
 import { useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router";
-import {
-  LayoutDashboard,
-  Film,
-  BarChart2,
-  Building2,
-  Users,
-  ArrowLeft,
-  LogOut,
-} from "lucide-react";
+import {LayoutDashboard,Film,BarChart2,Building2,Users,ArrowLeft,LogOut,Popcorn} from "lucide-react";
 import { logout } from "../../redux/slices/authSlice";
 import { baseApi } from "../../services/api/baseApi";
-import { Link, useLocation } from "react-router";
-import { LayoutDashboard, Film, BarChart2, Building2, ArrowLeft, Popcorn } from "lucide-react";
 
 export default function AdminSidebar() {
   const location = useLocation();
