@@ -50,44 +50,36 @@ const LoginComponent = () => {
     try {
       // 1. Authenticate with the FilmZone Cinema Booking API
       const authResponse = await loginMutation({
+        email: data.email.trim(),
+        username: data.email.trim(),
         identifier: data.email.trim(),
         password: data.password,
       }).unwrap();
 
-      const accessToken = authResponse.accessToken;
-      const refreshToken = authResponse.refreshToken;
+      const accessToken =
+        authResponse?.accessToken ||
+        authResponse?.token ||
+        authResponse?.data?.accessToken ||
+        authResponse?.data?.token;
 
-      // Keep the refresh token (used later if the access token expires)
+      const refreshToken =
+        authResponse?.refreshToken || authResponse?.data?.refreshToken;
+
+      if (!accessToken) {
+        throw new Error("No access token found in response");
+      }
+
       if (refreshToken) {
         sessionStorage.setItem("refreshToken", refreshToken);
       }
 
-      // 2. Fetch the admin profile from the Cinema API (/api/v1/users/me)
+      // 2. Set credentials into store before calling me endpoint
       let userProfile = {
         email: data.email,
         name: data.email.split("@")[0],
         role: "admin",
       };
 
-      try {
-        const userRes = await getCurrentUser().unwrap();
-        if (userRes) {
-          userProfile = {
-            ...userRes,
-            name:
-              `${userRes.firstName || ""} ${userRes.lastName || ""}`.trim() ||
-              userRes.username ||
-              userRes.email ||
-              data.email,
-            email: userRes.email || data.email,
-            role: "admin",
-          };
-        }
-      } catch (profileErr) {
-        console.warn("User profile fetch:", profileErr);
-      }
-
-      // 3. Save the real access token
       dispatch(
         setCredentials({
           accessToken,
@@ -97,26 +89,57 @@ const LoginComponent = () => {
         }),
       );
 
+      // 3. Fetch admin profile from the Cinema API
+      try {
+        const userRes = await getCurrentUser().unwrap();
+        const profileData = userRes?.data || userRes;
+        if (profileData) {
+          userProfile = {
+            ...profileData,
+            name:
+              `${profileData.firstName || ""} ${profileData.lastName || ""}`.trim() ||
+              profileData.username ||
+              profileData.email ||
+              data.email,
+            email: profileData.email || data.email,
+            role: profileData.role || "admin",
+          };
+
+          dispatch(
+            setCredentials({
+              accessToken,
+              token: accessToken,
+              refreshToken,
+              user: userProfile,
+            }),
+          );
+        }
+      } catch (profileErr) {
+        console.warn("User profile fetch:", profileErr);
+      }
+
       toast.success(`Welcome back, ${userProfile.name}!`);
       navigate("/admin");
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login error details:", err);
       const message =
         err?.data?.message ||
         err?.data?.error ||
         (err?.status === 401
           ? "Invalid email or password. Please try again."
-          : "Login failed. Please check your credentials.");
+          : err?.status === 404
+            ? "API route not found. Please verify the endpoint."
+            : err?.status === "FETCH_ERROR"
+              ? "Backend server is unreachable. Check server connection."
+              : "Login failed. Please check your credentials.");
       setErrorMsg(message);
       toast.error(message);
     }
   };
 
-  // Google login removed — Firebase tokens are not accepted by the admin Cinema API.
-
   return (
     <div className="relative flex h-full w-full">
-      {/* Back to Home - top-left corner on the image side (like the Stream Movie Detail page) */}
+      {/* Back to Home */}
       <Link
         to="/"
         aria-label="Back to Home"
