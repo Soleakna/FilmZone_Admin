@@ -27,6 +27,7 @@ export default function AdminSidebar() {
         : isEnd
           ? location.pathname === path
           : location.pathname.startsWith(path);
+          
 
     return `flex items-center gap-3 px-4.5 py-2.5 text-[14px] font-bold transition-all duration-200 w-full ${
       isActive

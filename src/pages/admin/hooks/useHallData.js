@@ -2,6 +2,8 @@ import { toast } from "react-toastify";
 import {
   useGetHallsQuery,
   useCreateHallMutation,
+  useUpdateHallMutation,
+  useUpdateHallStatusMutation,
   useDeleteHallMutation,
 } from "../../../services/api/hallApi";
 import { useDeleteAllSeatsMutation } from "../../../services/api/seatApi";
@@ -11,12 +13,27 @@ const extractErrorMessage = (err) => {
   if (err?.status === 401 || err?.status === 403) {
     return "Unauthorized — your session token was rejected. Log out and log in again, then retry.";
   }
+
+  const data = err?.data;
   const message =
-    err?.data?.message ||
-    err?.data?.error ||
-    err?.error ||
-    "Request failed. Check the Network tab for details.";
-  return err?.status ? `Request failed (HTTP ${err.status}): ${message}` : message;
+    typeof data === "string"
+      ? data
+      : data?.message ||
+        data?.error ||
+        data?.detail ||
+        err?.error ||
+        "Request failed. Check the Network tab for details.";
+
+  // For 5xx responses, surface the raw backend body too — the server usually
+  // says exactly what broke (e.g. a showtime still referencing the hall).
+  const rawBody =
+    err?.status >= 500 && data
+      ? ` — ${typeof data === "string" ? data : JSON.stringify(data)}`
+      : "";
+
+  return err?.status
+    ? `Request failed (HTTP ${err.status}): ${message}${rawBody}`
+    : message;
 };
 
 export function useHallData() {
@@ -36,6 +53,10 @@ export function useHallData() {
   const halls = hideSeededDemoHalls(rawHalls);
 
   const [createHall, { isLoading: isCreating }] = useCreateHallMutation();
+  const [updateHall, { isLoading: isUpdatingCapacity }] =
+    useUpdateHallMutation();
+  const [updateHallStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateHallStatusMutation();
   const [deleteHall, { isLoading: isDeleting }] = useDeleteHallMutation();
   const [deleteAllSeats] = useDeleteAllSeatsMutation();
 
@@ -47,6 +68,76 @@ export function useHallData() {
     } catch (err) {
       console.error("Create hall error:", err);
       toast.error(extractErrorMessage(err));
+      return false;
+    }
+  };
+
+  // PATCH /halls/{id} — partial update with just the new capacity.
+  // The page validates the 36–200 range before calling this.
+  const handleUpdateCapacity = async (hall, capacity) => {
+    const id = hall?.uuid ?? hall?.id ?? hall?._id ?? hall?.hallId;
+    if (id === undefined || id === null) {
+      toast.error("Cannot update: hall response has no id field.");
+      return false;
+    }
+
+    const name = hall?.name || `Hall #${id}`;
+
+    try {
+      await updateHall({ id, capacity }).unwrap();
+      toast.success(`Capacity of "${name}" updated to ${capacity} seats.`);
+      return true;
+    } catch (err) {
+      console.error("Update hall capacity error:", err);
+
+      // Hall no longer exists on the server — drop the stale row from the list.
+      if (err?.status === 404) {
+        toast.warn(`"${name}" no longer exists on the server. Refreshing the list…`);
+        refetch();
+      } else if (err?.status === 401 || err?.status === 403) {
+        toast.error(
+          "Unauthorized — your session token was rejected. Log out and log in again, then retry.",
+        );
+      } else {
+        toast.error(extractErrorMessage(err));
+      }
+      return false;
+    }
+  };
+
+  // PATCH /halls/{id}/status — dedicated status endpoint (UpdateHallStatusRequest).
+  // ACTIVE allows booking/showtimes; INACTIVE blocks them.
+  const handleUpdateStatus = async (hall, status) => {
+    const id = hall?.uuid ?? hall?.id ?? hall?._id ?? hall?.hallId;
+    if (id === undefined || id === null) {
+      toast.error("Cannot update: hall response has no id field.");
+      return false;
+    }
+
+    const name = hall?.name || `Hall #${id}`;
+
+    try {
+      await updateHallStatus({ id, status }).unwrap();
+      toast.success(
+        `"${name}" is now ${
+          status === "ACTIVE" ? "ACTIVE — users can book it" : "INACTIVE — bookings & showtimes blocked"
+        }.`,
+      );
+      return true;
+    } catch (err) {
+      console.error("Update hall status error:", err);
+
+      // Hall no longer exists on the server — drop the stale row from the list.
+      if (err?.status === 404) {
+        toast.warn(`"${name}" no longer exists on the server. Refreshing the list…`);
+        refetch();
+      } else if (err?.status === 401 || err?.status === 403) {
+        toast.error(
+          "Unauthorized — your session token was rejected. Log out and log in again, then retry.",
+        );
+      } else {
+        toast.error(extractErrorMessage(err));
+      }
       return false;
     }
   };
@@ -128,8 +219,11 @@ export function useHallData() {
     error,
     isCreating,
     isDeleting,
+    isUpdating: isUpdatingCapacity || isUpdatingStatus,
     refetch,
     handleCreate,
+    handleUpdateCapacity,
+    handleUpdateStatus,
     handleDelete,
   };
 }

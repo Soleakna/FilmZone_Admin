@@ -98,6 +98,23 @@ export default function MovieModal({
     () => hideSeededDemoHalls(rawApiHalls),
     [rawApiHalls],
   );
+  // Only ACTIVE halls may be scheduled for movies / showtimes. INACTIVE halls
+  // are hidden from the defaults and the Add-Hall picker (missing status on
+  // older records counts as ACTIVE).
+  const activeApiHalls = useMemo(
+    () =>
+      apiHalls.filter(
+        (h) => (h?.status || "ACTIVE").toUpperCase() === "ACTIVE",
+      ),
+    [apiHalls],
+  );
+  const inactiveApiHalls = useMemo(
+    () =>
+      apiHalls.filter(
+        (h) => (h?.status || "ACTIVE").toUpperCase() !== "ACTIVE",
+      ),
+    [apiHalls],
+  );
   const [hydratedApiHalls, setHydratedApiHalls] = useState(false);
 
   // Generated date list from start date and duration
@@ -186,10 +203,10 @@ export default function MovieModal({
   // static default template halls behind).
   useEffect(() => {
     if (!editingMovie && !hydratedApiHalls && rawApiHalls.length > 0) {
-      setBranches(buildBranchesFromApiHalls(apiHalls));
+      setBranches(buildBranchesFromApiHalls(activeApiHalls));
       setHydratedApiHalls(true);
     }
-  }, [editingMovie, hydratedApiHalls, rawApiHalls, apiHalls]);
+  }, [editingMovie, hydratedApiHalls, rawApiHalls, activeApiHalls]);
 
   // Current Branch
   const currentBranch = branches[selectedBranchIdx] || branches[0];
@@ -290,11 +307,14 @@ export default function MovieModal({
     // Admin-created hall from the Cinema API (selected by its uuid)
     const apiHall = apiHalls.find((h) => h.uuid === value);
     if (apiHall) {
-      const { updatedBranches, branch } = getClonedBranchAndSchedule();
-      const dayHalls = branch.scheduleByDate[activeDate];
+      // Inactive halls can never be added to a showtime, even via the picker.
+      if ((apiHall.status || "ACTIVE").toUpperCase() === "ACTIVE") {
+        const { updatedBranches, branch } = getClonedBranchAndSchedule();
+        const dayHalls = branch.scheduleByDate[activeDate];
 
-      dayHalls.push(mapApiHallToScheduleHall(apiHall, branch.branchName));
-      setBranches(updatedBranches);
+        dayHalls.push(mapApiHallToScheduleHall(apiHall, branch.branchName));
+        setBranches(updatedBranches);
+      }
       return;
     }
 
@@ -847,19 +867,34 @@ export default function MovieModal({
                   >
                     <option value="">+ Add Hall to this day</option>
                     {rawApiHalls.length > 0 ? (
-                      <optgroup label="🏛️ Cinema Halls (Live)">
-                        {apiHalls.length > 0 ? (
-                          apiHalls.map((h) => (
+                      <>
+                      <optgroup label="🏛️ Cinema Halls (Active)">
+                        {activeApiHalls.length > 0 ? (
+                          activeApiHalls.map((h) => (
                             <option key={h.uuid} value={h.uuid}>
                               {h.name} — {h.hallType} ({h.capacity} seats)
                             </option>
                           ))
+                        ) : apiHalls.length > 0 ? (
+                          <option value="" disabled>
+                            No active halls — activate one in Manage Halls
+                          </option>
                         ) : (
                           <option value="" disabled>
                             No halls created yet — add one in Manage Halls
                           </option>
                         )}
                       </optgroup>
+                      {inactiveApiHalls.length > 0 && (
+                        <optgroup label="⛔ Inactive Halls (Unavailable)">
+                          {inactiveApiHalls.map((h) => (
+                            <option key={h.uuid} value="" disabled>
+                              {h.name} — {h.hallType} ({h.capacity} seats)
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      </>
                     ) : (
                       <>
                         <optgroup label="🏛️ Standard Hall (Regular & Couple)">

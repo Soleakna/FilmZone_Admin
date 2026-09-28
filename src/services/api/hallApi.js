@@ -49,11 +49,11 @@ export const hallApi = baseApi.injectEndpoints({
       invalidatesTags: ["Hall"],
     }),
 
-    // 4. PUT /halls/:id — update a hall
+    // 4. PATCH /halls/:id — update a hall's capacity (body: HallUpdateRequest).
     updateHall: builder.mutation({
       query: ({ id, ...hallData }) => ({
         url: `/halls/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: hallData,
       }),
       invalidatesTags: (result, error, { id }) => [
@@ -62,7 +62,21 @@ export const hallApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // 5. DELETE /halls/:id — remove a hall
+    // 5. PATCH /halls/:id/status — change a hall's status.
+    // Body: UpdateHallStatusRequest { status: "ACTIVE" | "INACTIVE" | ... }.
+    updateHallStatus: builder.mutation({
+      query: ({ id, status }) => ({
+        url: `/halls/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Hall", id },
+        "Hall",
+      ],
+    }),
+
+    // 6. DELETE /halls/:id — remove a hall
     deleteHall: builder.mutation({
       query: (id) => ({
         url: `/halls/${id}`,
@@ -79,5 +93,6 @@ export const {
   useGetHallByIdQuery,
   useCreateHallMutation,
   useUpdateHallMutation,
+  useUpdateHallStatusMutation,
   useDeleteHallMutation,
 } = hallApi;
