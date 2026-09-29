@@ -84,6 +84,24 @@ export const showtimeApi = baseApi.injectEndpoints({
         { type: "Showtime", id: `seats-${uuid}` },
       ],
     }),
+
+    // 5. PATCH /showtimes/{uuid}/status — publish / change a showtime's status.
+    // NOTE: the backend PATCH /showtimes endpoint is NOT exposed yet on the
+    // deployed API (v3/api-docs only lists GET/POST /showtimes). It mirrors the
+    // /halls/{uuid}/status, /movies/{uuid}/status, /seats/{uuid}/status
+    // pattern and is ready to use the moment the backend team ships it.
+    updateShowtimeStatus: builder.mutation({
+      query: ({ uuid, status }) => ({
+        url: `/showtimes/${uuid}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      transformResponse: unwrapSingle,
+      invalidatesTags: (result, error, { uuid }) => [
+        { type: "Showtime", id: "LIST" },
+        { type: "Showtime", id: uuid },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -93,4 +111,5 @@ export const {
   useCreateShowtimeMutation,
   useGetShowtimeByUuidQuery,
   useGetShowtimeSeatsQuery,
+  useUpdateShowtimeStatusMutation,
 } = showtimeApi;

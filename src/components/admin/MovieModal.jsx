@@ -29,6 +29,7 @@ import { MOCK_MOVIES } from "../../utils/mockData";
 import { toast } from "react-toastify";
 import { useGetHallsQuery } from "../../services/api/hallApi";
 import { hideSeededDemoHalls } from "../../utils/hallVisibility";
+import { useGetShowtimesQuery, useUpdateShowtimeStatusMutation } from "../../services/api/showtimeApi";
 
 // Map an admin-created hall (Cinema API) into the schedule-hall shape used by
 // the day-by-day scheduling UI (mirrors getBaseHallsTemplate entries).
@@ -48,6 +49,28 @@ const mapApiHallToScheduleHall = (apiHall, branchName) => {
     capacity: apiHall.capacity,
   };
 };
+
+// Format an ISO startTime/endTime from the Showtimes API into "hh:mm AM/PM".
+const formatShowtimeTime = (iso) => {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime())
+      ? "—"
+      : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  } catch {
+    return "—";
+  }
+};
+
+const showtimeStatusChip = (status) =>
+  status === "OPEN"
+    ? "bg-emerald-100 text-emerald-700"
+    : status === "DRAFT"
+      ? "bg-neutral-200 text-neutral-600"
+      : status === "COMPLETED"
+        ? "bg-sky-100 text-sky-600"
+        : "bg-red-100 text-red-600";
 
 // Build every branch's default hall list from the admin's real halls.
 const buildBranchesFromApiHalls = (apiHalls) =>
@@ -115,6 +138,47 @@ export default function MovieModal({
       ),
     [apiHalls],
   );
+
+  // Real showtimes from the Cinema Booking API, filtered to the active date.
+  const {
+    data: apiShowtimes = [],
+    refetch: refetchShowtimes,
+  } = useGetShowtimesQuery();
+  const apiShowtimesForDate = useMemo(
+    () =>
+      (Array.isArray(apiShowtimes) ? apiShowtimes : []).filter(
+        (st) => st?.startTime?.slice(0, 10) === activeDate,
+      ),
+    [apiShowtimes, activeDate],
+  );
+
+  // Publish (set to OPEN) a real showtime created in Cinema Showtimes, so the
+  // customer site exposes it for booking. Requires the backend's
+  // PATCH /showtimes/{uuid}/status endpoint (pending deployment).
+  const [updateShowtimeStatus] = useUpdateShowtimeStatusMutation();
+  const [publishingShowtimeUuid, setPublishingShowtimeUuid] = useState(null);
+
+  const handlePublishShowtime = async (showtime) => {
+    const uuid = showtime?.uuid;
+    if (!uuid || publishingShowtimeUuid) return;
+    setPublishingShowtimeUuid(uuid);
+    try {
+      await updateShowtimeStatus({ uuid, status: "OPEN" }).unwrap();
+      toast.success(
+        `"${showtime.movieTitle || "Showtime"}" published — users can now book it.`,
+      );
+      refetchShowtimes();
+    } catch (err) {
+      console.error("Publish showtime error:", err);
+      toast.error(
+        err?.data?.message ||
+          err?.data?.error ||
+          `Request failed (HTTP ${err?.status}): ${err?.error || "Check the Network tab."}`,
+      );
+    } finally {
+      setPublishingShowtimeUuid(null);
+    }
+  };
   const [hydratedApiHalls, setHydratedApiHalls] = useState(false);
 
   // Generated date list from start date and duration
@@ -923,6 +987,75 @@ export default function MovieModal({
                     )}
                   </select>
                 </div>
+
+                {/* Real showtimes created in Cinema Showtimes, for this date */}
+                {apiShowtimesForDate.length > 0 && (
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#b90101]" />
+                      Cinema API Showtimes on{" "}
+                      <strong className="text-[#b90101]">{activeDate}</strong>{" "}
+                      ({apiShowtimesForDate.length}):
+                    </p>
+                    <div className="space-y-2.5">
+                      {apiShowtimesForDate.map((st) => (
+                        <div
+                          key={st.uuid}
+                          className="bg-white rounded-xl p-3 border border-emerald-200/70 shadow-xs space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-neutral-900 truncate">
+                                {st.movieTitle || "Untitled"}
+                              </p>
+                              <p className="text-xs font-semibold text-neutral-500 truncate mt-0.5">
+                                {st.hallName || "Hall"} · Ends{" "}
+                                {formatShowtimeTime(st.endTime)}
+                              </p>
+                            </div>
+                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#b90101]/10 text-[#b90101] text-xs font-black whitespace-nowrap">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {formatShowtimeTime(st.startTime)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-1 rounded-md bg-neutral-100 text-neutral-700 text-[11px] font-bold">
+                              Base: ${Number(st.basePrice || 0).toFixed(2)}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${showtimeStatusChip(st.status)}`}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {st.status || "—"}
+                            </span>
+                            {st?.status &&
+                              st.status !== "OPEN" &&
+                              st.status !== "CLOSED" &&
+                              st.status !== "CANCELLED" &&
+                              st.status !== "COMPLETED" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePublishShowtime(st)}
+                                  disabled={publishingShowtimeUuid !== null}
+                                  title="Set this showtime to OPEN so users can book it"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#b90101] hover:brightness-110 text-white text-[11px] font-black transition active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                  {publishingShowtimeUuid === st?.uuid ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="w-3 h-3" />
+                                  )}
+                                  {publishingShowtimeUuid === st?.uuid
+                                    ? "Publishing…"
+                                    : "Publish"}
+                                </button>
+                              )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {activeDayHalls.map((hall, hIdx) => (

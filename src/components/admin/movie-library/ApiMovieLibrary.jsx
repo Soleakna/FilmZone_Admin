@@ -30,6 +30,7 @@ export default function ApiMovieLibrary() {
     isMoviesError,
     moviesError,
     refetchMovies,
+    selectedMovieUuid,
     movieDetails,
     isDetailsLoading,
     isDetailsError,

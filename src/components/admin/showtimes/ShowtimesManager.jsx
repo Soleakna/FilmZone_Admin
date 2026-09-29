@@ -11,6 +11,7 @@ import {
 import { useShowtimesData } from "../../../pages/admin/hooks/useShowtimesData";
 import { useGetHallsQuery } from "../../../services/api/hallApi";
 import { useGetMoviesQuery } from "../../../services/api/movieApi";
+import { hideSeededDemoHalls } from "../../../utils/hallVisibility";
 import CreateShowtimeModal from "./CreateShowtimeModal";
 import ShowtimeDetailsModal from "./ShowtimeDetailsModal";
 import ShowtimeSeatsModal from "./ShowtimeSeatsModal";
@@ -71,8 +72,10 @@ export default function ShowtimesManager() {
     handleCreateShowtime,
   } = useShowtimesData();
 
-  // Halls + movies for the create form (cached by the API layer).
-  const { data: allHalls = [] } = useGetHallsQuery();
+  // Halls for the create form — the API returns every hall (including backend
+  // demo seeds), so hide the same seeded halls the Manage Halls page hides.
+  const { data: rawHalls = [] } = useGetHallsQuery();
+  const allHalls = hideSeededDemoHalls(rawHalls);
   const { data: moviesPage } = useGetMoviesQuery({ page: 0, size: 200 });
   const movies = Array.isArray(moviesPage?.content) ? moviesPage.content : [];
 
