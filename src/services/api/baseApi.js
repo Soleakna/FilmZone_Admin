@@ -24,6 +24,7 @@ const isCinemaApiEndpoint = (url) => {
     "/tickets",
     "/payments",
     "/files",
+    "/movies",
     "/api/v1",
   ].some((prefix) => url.startsWith(prefix));
 };
@@ -45,7 +46,9 @@ const cinemaBaseQuery = fetchBaseQuery({
   baseUrl: CINEMA_API_BASE,
   prepareHeaders: (headers, { getState }) => {
     const userToken =
-      getState()?.auth?.token || localStorage.getItem("cinema_token");
+      getState()?.auth?.token ||
+      sessionStorage.getItem("cinema_token") ||
+      null;
     if (userToken) {
       headers.set("Authorization", `Bearer ${userToken}`);
     }

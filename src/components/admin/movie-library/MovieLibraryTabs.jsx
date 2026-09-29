@@ -66,9 +66,9 @@ export default function MovieLibraryTabs({
           </button>
         </div>
 
-        <div className="text-[11px] font-bold text-neutral-400 px-3">
+        {/* <div className="text-[11px] font-bold text-neutral-400 px-3">
           Category: <span className="text-neutral-800">{activeGroupTab}</span>
-        </div>
+        </div> */}
       </div>
 
       {/* Panel Selector Cards */}

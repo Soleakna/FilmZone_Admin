@@ -18,7 +18,9 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminMovieLibraryPage from "./pages/admin/AdminMovieLibraryPage";
 import AdminUserAnalyticsPage from "./pages/admin/AdminUserAnalyticsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminHallsPage from "./pages/admin/AdminHallsPage";
+import AdminSeatsPage from "./pages/admin/AdminSeatsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ConcessionsTable from "./components/admin/concession/ConcessionsTable";
 import ConcessionsHeader from "./components/admin/concession/ConcessionsHeader";
@@ -69,6 +71,10 @@ const router = createBrowserRouter([
         element: <AdminMovieLibraryPage />,
       },
       {
+        path: "users",
+        element: <AdminUsersPage />,
+      },
+      {
         path: "analytics",
         element: <AdminUserAnalyticsPage />,
       },
@@ -77,7 +83,11 @@ const router = createBrowserRouter([
         element: <AdminHallsPage />,
       },
       {
-        path: "form",
+        path: "halls/:hallUuid/seats",
+        element: <AdminSeatsPage />,
+      },
+      {
+             path: "form",
         element: <ConcessionsFormModal/>,
       },
       {

@@ -1,8 +1,23 @@
-import { Link, useLocation } from "react-router";
-import { LayoutDashboard, Film, BarChart2, Building2, ArrowLeft, Popcorn } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { Link, useLocation, useNavigate } from "react-router";
+import {LayoutDashboard,Film,BarChart2,Building2,Users,ArrowLeft,LogOut,Popcorn} from "lucide-react";
+import { logout } from "../../redux/slices/authSlice";
+import { baseApi } from "../../services/api/baseApi";
 
 export default function AdminSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    // Wipe every cached API response (halls, movies, etc.) fetched under the
+    // previous session. Without this, the next login in the same tab keeps
+    // showing the old session's data (e.g. stale hall lists), and deleting
+    // those halls fails because they belong to the previous session's token.
+    dispatch(baseApi.util.resetApiState());
+    navigate("/login");
+  };
 
   const getNavItemClass = (path, isEnd = false) => {
     const isActive =
@@ -12,6 +27,7 @@ export default function AdminSidebar() {
         : isEnd
           ? location.pathname === path
           : location.pathname.startsWith(path);
+          
 
     return `flex items-center gap-3 px-4.5 py-2.5 text-[14px] font-bold transition-all duration-200 w-full ${
       isActive
@@ -52,6 +68,10 @@ export default function AdminSidebar() {
             <span>Manage Halls</span>
           </Link>
 
+          <Link to="/admin/users" className={getNavItemClass("/admin/users")}>
+            <Users className="w-4.5 h-4.5 shrink-0" />
+            <span>Manage Users</span>
+           </Link>
           <Link to="/admin/concession" className={getNavItemClass("/admin/concession")}>
             <Popcorn className="w-4.5 h-4.5 shrink-0" />
             <span>Concession</span>
@@ -65,7 +85,7 @@ export default function AdminSidebar() {
             <span>User Analytics</span>
           </Link>
 
-          <div className="pt-5 px-4.5">
+          {/* <div className="pt-5 px-4.5">
             <Link
               to="/"
               className="inline-flex items-center gap-2 text-xs font-bold text-neutral-500 hover:text-[#B90101] transition"
@@ -73,26 +93,36 @@ export default function AdminSidebar() {
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Website</span>
             </Link>
-          </div>
+          </div> */}
         </nav>
       </div>
 
-      {/* Bottom Admin User Profile Section (Stuck to bottom left of sidebar) */}
-      <div className="p-4 border-t border-neutral-200/80 flex items-center gap-2.5 shrink-0 bg-[#f4f5f8] sticky bottom-0">
-        <img
-          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-          alt="Ratana Oudom"
-          className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
-        />
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs font-extrabold text-neutral-900 leading-tight truncate">
-            Admin User
-          </span>
-          <span className="text-[11px] font-semibold text-neutral-500 leading-tight truncate">
-            Ratana Oudom
-          </span>
+      <div className="flex items-center justify-between gap-2.5 shrink-0 bg-[#f4f5f8] sticky bottom-0 p-4 border-t border-neutral-200/80">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+              alt="Ratana Oudom"
+              className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
+            />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-extrabold text-neutral-900 leading-tight truncate">
+                Admin User
+              </span>
+              <span className="text-[11px] font-semibold text-neutral-500 leading-tight truncate">
+                Ratana Oudom
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Log out"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-neutral-500 hover:text-[#B90101] transition cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
         </div>
-      </div>
     </aside>
   );
 }

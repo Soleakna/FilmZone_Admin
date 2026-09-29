@@ -1,17 +1,37 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const token = localStorage.getItem("cinema_token") || null;
-const refreshToken = localStorage.getItem("cinema_refresh_token") || null;
-const user = localStorage.getItem("cinema_user")
-  ? JSON.parse(localStorage.getItem("cinema_user"))
-  : null;
+// Auth session keys shared between sessionStorage & legacy localStorage cleanup.
+const AUTH_STORAGE_KEYS = ["cinema_token", "cinema_user", "cinema_refresh_token"];
 
+/**
+ * The admin session is intentionally NOT persisted.
+ *
+ * The token lives only in Redux memory, and Redux state is rebuilt on every
+ * full page load. That means every visit / refresh starts logged out and the
+ * admin is asked to log in again.
+ */
+
+// Remove any stale credentials an older version wrote into storage. A fresh
+// visit must always begin at the login screen.
+AUTH_STORAGE_KEYS.forEach((key) => {
+  localStorage.removeItem(key);
+  sessionStorage.removeItem(key);
+});
+
+const clearAuthStorage = () => {
+  AUTH_STORAGE_KEYS.forEach((key) => {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+  });
+};
+
+// Always start logged out on a fresh page load.
 const initialState = {
-  user: user,
-  token: token,
-  accessToken: token,
-  refreshToken: refreshToken,
-  isAuthenticated: !!token,
+  user: null,
+  token: null,
+  accessToken: null,
+  refreshToken: null,
+  isAuthenticated: false,
   loading: false,
   error: null,
 };
@@ -28,18 +48,19 @@ const authSlice = createSlice({
       if (refreshToken !== undefined) state.refreshToken = refreshToken;
       state.isAuthenticated = !!state.token;
       state.error = null;
-      if (state.token) localStorage.setItem("cinema_token", state.token);
-      if (user) localStorage.setItem("cinema_user", JSON.stringify(user));
-      if (state.refreshToken) {
-        localStorage.setItem("cinema_refresh_token", state.refreshToken);
-      } else {
-        localStorage.removeItem("cinema_refresh_token");
-      }
+      // Persist ONLY the profile (needed for the hall-ownership registry key).
+      // The token & refresh token stay in memory so every fresh page load
+      // requires login again.
+      if (user) sessionStorage.setItem("cinema_user", JSON.stringify(user));
+      sessionStorage.removeItem("cinema_token");
+      sessionStorage.removeItem("cinema_refresh_token");
+      localStorage.removeItem("cinema_token");
+      localStorage.removeItem("cinema_refresh_token");
     },
     updateUser: (state, action) => {
       state.user = { ...state.user, ...action.payload };
       if (state.user) {
-        localStorage.setItem("cinema_user", JSON.stringify(state.user));
+        sessionStorage.setItem("cinema_user", JSON.stringify(state.user));
       }
     },
     logout: (state) => {
@@ -49,9 +70,7 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = null;
-      localStorage.removeItem("cinema_token");
-      localStorage.removeItem("cinema_user");
-      localStorage.removeItem("cinema_refresh_token");
+      clearAuthStorage();
     },
     setError: (state, action) => {
       state.error = action.payload;
