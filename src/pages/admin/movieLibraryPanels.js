@@ -7,6 +7,7 @@ import {
   Star,
   Filter,
   Tv,
+  Clock,
 } from "lucide-react";
 
 // Definition of all TMDB and Managed Panels
@@ -21,6 +22,34 @@ export const PANELS = [
     description:
       "Cinema tickets & showtime schedule catalog synced with customer booking website",
     icon: Film,
+    isTmdb: false,
+    mediaType: "movie",
+  },
+
+  // 1b. Cinema Booking API Movies
+  {
+    id: "CINEMA_API",
+    group: "MANAGED",
+    label: "Cinema Movies",
+    subLabel: "Backend API",
+    endpoint: "Cinema Booking API",
+    description:
+      "Movies stored in the Cinema Booking API — import from TMDB, update status, delete.",
+    icon: Clapperboard,
+    isTmdb: false,
+    mediaType: "movie",
+  },
+
+  // 1c. Cinema Booking API Showtimes
+  {
+    id: "CINEMA_SHOWTIMES",
+    group: "MANAGED",
+    label: "Cinema Showtimes",
+    subLabel: "Showtimes API",
+    endpoint: "Cinema Booking API",
+    description:
+      "Showtimes stored in the Cinema Booking API — schedule movies in halls and inspect seat availability.",
+    icon: Clock,
     isTmdb: false,
     mediaType: "movie",
   },

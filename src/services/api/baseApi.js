@@ -24,6 +24,7 @@ const isCinemaApiEndpoint = (url) => {
     "/tickets",
     "/payments",
     "/files",
+    "/movies",
     "/api/v1",
   ].some((prefix) => url.startsWith(prefix));
 };

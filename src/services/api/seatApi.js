@@ -34,6 +34,15 @@ export const seatApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // 1b. GET /seats/:uuid — fetch one seat's details
+    getSeatByUuid: builder.query({
+      query: (uuid) => `/seats/${uuid}`,
+      transformResponse: unwrapSingle,
+      providesTags: (result, error, uuid) => [
+        { type: "Seat", seatUuid: uuid },
+      ],
+    }),
+
     // 2. POST /halls/:hallUuid/seats — create a seat in a hall
     createSeat: builder.mutation({
       query: ({ hallUuid, ...seatData }) => ({
@@ -97,14 +106,29 @@ export const seatApi = baseApi.injectEndpoints({
         "Seat",
       ],
     }),
+  // 6. PATCH /seats/:uuid/status — change a seat's status.
+    // Body: UpdateSeatStatusRequest { status: "ACTIVE" | "INACTIVE" | ... }.
+    updateSeatStatus: builder.mutation({
+      query: ({ uuid, status }) => ({
+        url: `/seats/${uuid}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (result, error, { hallUuid }) => [
+        { type: "Seat", hallUuid },
+        "Seat",
+      ],
+    }),
   }),
   overrideExisting: false,
 });
 
 export const {
   useGetSeatsByHallQuery,
+  useGetSeatByUuidQuery,
   useCreateSeatMutation,
   useCreateCoupleSeatMutation,
   useCreateBulkSeatsMutation,
+  useUpdateSeatStatusMutation,
   useDeleteAllSeatsMutation,
 } = seatApi;

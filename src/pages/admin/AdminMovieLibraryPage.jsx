@@ -4,6 +4,8 @@ import MovieLibraryHeader from "../../components/admin/movie-library/MovieLibrar
 import MovieLibraryTabs from "../../components/admin/movie-library/MovieLibraryTabs";
 import MovieLibraryFilters from "../../components/admin/movie-library/MovieLibraryFilters";
 import MovieLibraryTable from "../../components/admin/movie-library/MovieLibraryTable";
+import ApiMovieLibrary from "../../components/admin/movie-library/ApiMovieLibrary";
+import ShowtimesManager from "../../components/admin/showtimes/ShowtimesManager";
 
 export default function AdminMovieLibraryPage() {
   const {
@@ -49,14 +51,16 @@ export default function AdminMovieLibraryPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      {/* 1. Header Title & Actions */}
-      <MovieLibraryHeader
-        activePanelId={activePanelId}
-        managedMoviesCount={managedMovies.length}
-        onRestore100={handleRestore100Movies}
-        onClearAll={handleClearAll}
-        onAddCustom={handleOpenAddCustom}
-      />
+      {/* 1. Header Title & Actions (the API panel renders its own header) */}
+      {activePanelId === "CINEMA_API" ? null : (
+        <MovieLibraryHeader
+          activePanelId={activePanelId}
+          managedMoviesCount={managedMovies.length}
+          onRestore100={handleRestore100Movies}
+          onClearAll={handleClearAll}
+          onAddCustom={handleOpenAddCustom}
+        />
+      )}
 
       {/* 2. Top Group & Panel Category Selector */}
       <MovieLibraryTabs
@@ -66,55 +70,63 @@ export default function AdminMovieLibraryPage() {
         onSelectPanel={handleSelectPanel}
       />
 
-      {/* 3. Active Panel Banner, Sub-Filters & Search */}
-      <MovieLibraryFilters
-        activePanel={activePanel}
-        activePanelId={activePanelId}
-        activeCatalogFilter={activeCatalogFilter}
-        setActiveCatalogFilter={setActiveCatalogFilter}
-        trendingTimeWindow={trendingTimeWindow}
-        setTrendingTimeWindow={setTrendingTimeWindow}
-        selectedGenreId={selectedGenreId}
-        setSelectedGenreId={setSelectedGenreId}
-        selectedSortBy={selectedSortBy}
-        setSelectedSortBy={setSelectedSortBy}
-        movieGenresList={movieGenresList}
-        tvGenresList={tvGenresList}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        setCurrentPage={setCurrentPage}
-        isFetching={isFetching}
-        itemCount={displayItems.length}
-        currentPage={currentPage}
-        totalPages={totalPages}
-      />
+      {activePanelId === "CINEMA_API" ? (
+        <ApiMovieLibrary />
+      ) : activePanelId === "CINEMA_SHOWTIMES" ? (
+        <ShowtimesManager />
+      ) : (
+        <>
+          {/* 3. Active Panel Banner, Sub-Filters & Search */}
+          <MovieLibraryFilters
+            activePanel={activePanel}
+            activePanelId={activePanelId}
+            activeCatalogFilter={activeCatalogFilter}
+            setActiveCatalogFilter={setActiveCatalogFilter}
+            trendingTimeWindow={trendingTimeWindow}
+            setTrendingTimeWindow={setTrendingTimeWindow}
+            selectedGenreId={selectedGenreId}
+            setSelectedGenreId={setSelectedGenreId}
+            selectedSortBy={selectedSortBy}
+            setSelectedSortBy={setSelectedSortBy}
+            movieGenresList={movieGenresList}
+            tvGenresList={tvGenresList}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            setCurrentPage={setCurrentPage}
+            isFetching={isFetching}
+            itemCount={displayItems.length}
+            currentPage={currentPage}
+            totalPages={totalPages}
+          />
 
-      {/* 4. Main Content Table & Pagination */}
-      <MovieLibraryTable
-        items={displayItems}
-        isLoading={isLoading}
-        activePanel={activePanel}
-        activePanelId={activePanelId}
-        catalogTmdbIdSet={catalogTmdbIdSet}
-        formatGenres={formatGenres}
-        onEdit={handleOpenEdit}
-        onDelete={handleDelete}
-        onQuickImport={handleQuickImportTmdb}
-        onCustomizeSchedule={handleCustomizeTmdbSchedule}
-        onAddCustom={handleOpenAddCustom}
-        onRestore100={handleRestore100Movies}
-        totalPages={totalPages}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />
+          {/* 4. Main Content Table & Pagination */}
+          <MovieLibraryTable
+            items={displayItems}
+            isLoading={isLoading}
+            activePanel={activePanel}
+            activePanelId={activePanelId}
+            catalogTmdbIdSet={catalogTmdbIdSet}
+            formatGenres={formatGenres}
+            onEdit={handleOpenEdit}
+            onDelete={handleDelete}
+            onQuickImport={handleQuickImportTmdb}
+            onCustomizeSchedule={handleCustomizeTmdbSchedule}
+            onAddCustom={handleOpenAddCustom}
+            onRestore100={handleRestore100Movies}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+          />
 
-      {/* 5. Movie Modal for Custom Scheduling */}
-      <MovieModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveMovie}
-        editingMovie={editingMovie}
-      />
+          {/* 5. Movie Modal for Custom Scheduling */}
+          <MovieModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={handleSaveMovie}
+            editingMovie={editingMovie}
+          />
+        </>
+      )}
     </div>
   );
 }

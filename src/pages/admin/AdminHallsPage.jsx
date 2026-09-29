@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Armchair,
   Building2,
+  ChevronDown,
   Pencil,
   Plus,
   RefreshCw,
@@ -335,15 +336,18 @@ export default function AdminHallsPage() {
 
             <div>
               <label className={labelClass}>Hall Type</label>
-              <select
-                value={form.hallType}
-                onChange={handleHallTypeChange}
-                className={inputClass}
-              >
-                <option value="STANDARD">STANDARD</option>
-                <option value="VIP">VIP</option>
-                <option value="IMAX">IMAX</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={form.hallType}
+                  onChange={handleHallTypeChange}
+                  className={`${inputClass} appearance-none pr-9 cursor-pointer`}
+                >
+                  <option value="STANDARD">STANDARD</option>
+                  <option value="VIP">VIP</option>
+                  <option value="IMAX">IMAX</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-neutral-500 pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" />
+              </div>
             </div>
 
             <div>

@@ -3,12 +3,14 @@ import {
   AlertTriangle,
   Armchair,
   ArrowLeft,
+  Eye,
   HeartHandshake,
   Layers,
   Loader2,
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Link, useParams } from "react-router";
@@ -50,6 +52,13 @@ export default function AdminSeatsPage() {
     (h) => (h?.uuid ?? h?.id ?? h?._id ?? h?.hallId) === hallUuid,
   );
 
+  const [form, setForm] = useState(DEFAULT_FORM);
+  // Seat currently having its status toggled — shows a spinner on its button.
+  const [busySeatUuid, setBusySeatUuid] = useState(null);
+  // Seat details modal (GET /seats/:uuid).
+  const [seatDetailsOpen, setSeatDetailsOpen] = useState(false);
+  const [selectedSeatUuid, setSelectedSeatUuid] = useState(null);
+
   const {
     seats,
     isLoading,
@@ -63,9 +72,13 @@ export default function AdminSeatsPage() {
     handleCreateSeat,
     handleCreateCoupleSeat,
     handleCreateBulkSeats,
-  } = useSeatData(hallUuid);
-
-  const [form, setForm] = useState(DEFAULT_FORM);
+    handleUpdateSeatStatus,
+    seatDetails,
+    isSeatDetailsLoading,
+    isSeatDetailsError,
+    seatDetailsError,
+    refetchSeatDetails,
+  } = useSeatData(hallUuid, selectedSeatUuid);
 
   const setField = (key) => (event) =>
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
@@ -157,6 +170,92 @@ export default function AdminSeatsPage() {
     if (s?.xPosition === undefined && s?.yPosition === undefined) return null;
     return `(${s?.xPosition ?? 0}, ${s?.yPosition ?? 0})`;
   };
+  // Seats without a status field (older records) count as ACTIVE.
+  const getSeatStatus = (s) => {
+    const status = (s?.status || "ACTIVE").toUpperCase();
+    return status === "ACTIVE" ? "ACTIVE" : "INACTIVE";
+  };
+
+  const handleToggleSeatStatus = async (seat) => {
+    const uuid = seat?.uuid ?? seat?.id ?? seat?._id ?? seat?.seatUuid;
+    setBusySeatUuid(uuid);
+    try {
+      const nextStatus =
+        getSeatStatus(seat) === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+      await handleUpdateSeatStatus(seat, nextStatus);
+    } finally {
+      setBusySeatUuid(null);
+    }
+  };
+
+  // --- Seat details (GET /seats/:uuid) ---
+  const openSeatDetails = (seat) => {
+    const uuid = seat?.uuid ?? seat?.id ?? seat?._id ?? seat?.seatUuid;
+    setSelectedSeatUuid(uuid);
+    setSeatDetailsOpen(true);
+  };
+
+  const closeSeatDetails = () => {
+    setSeatDetailsOpen(false);
+    setSelectedSeatUuid(null);
+  };
+
+  const getSeatDetailsErrorText = () =>
+    seatDetailsError?.data?.message ||
+    seatDetailsError?.data?.error ||
+    seatDetailsError?.data?.detail ||
+    seatDetailsError?.error ||
+    (seatDetailsError?.status
+      ? `Server returned HTTP ${seatDetailsError.status}`
+      : "Unknown error");
+
+  const formatDateTime = (iso) => {
+    if (!iso) return "—";
+    try {
+      const date = new Date(iso);
+      return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+    } catch {
+      return "—";
+    }
+  };
+
+  // One labeled value row inside the Seat Details dialog.
+  const renderDetail = (label, value, kind) => (
+    <div className="rounded-xl bg-neutral-50 border border-neutral-200/70 px-3.5 py-2.5 shadow-xs">
+      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#b90101]/40" />
+        {label}
+      </p>
+      {kind === "badge" ? (
+        <span
+          className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
+            getSeatStatus(seatDetails) === "ACTIVE"
+              ? "bg-emerald-100 text-emerald-600"
+              : "bg-red-100 text-red-600"
+          }`}
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              getSeatStatus(seatDetails) === "ACTIVE"
+                ? "bg-emerald-500 animate-pulse"
+                : "bg-red-600"
+            }`}
+          />
+          {value ?? "—"}
+        </span>
+      ) : (
+        <p
+          className={`mt-0.5 text-sm font-bold ${
+            kind === "mono"
+              ? "font-mono text-xs font-semibold text-neutral-600 break-all"
+              : "text-neutral-900"
+          }`}
+        >
+          {value !== undefined && value !== null && value !== "" ? value : "—"}
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-8 font-sans">
@@ -251,8 +350,12 @@ export default function AdminSeatsPage() {
                   }
                   className="flex items-center justify-between gap-4 py-3.5"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-extrabold text-neutral-900 truncate">
+                  <div
+                    className="min-w-0 flex-1 cursor-pointer group"
+                    onClick={() => openSeatDetails(seat)}
+                    title="View seat details"
+                  >
+                    <p className="text-sm font-extrabold text-neutral-900 truncate group-hover:text-[#b90101] group-hover:underline">
                       {getSeatLabel(seat)}
                     </p>
                     <p className="text-xs font-semibold text-neutral-500 mt-0.5">
@@ -262,20 +365,46 @@ export default function AdminSeatsPage() {
                         ? ` · Position ${getSeatPosition(seat)}`
                         : ""}
                     </p>
+                    <p className="inline-flex items-center gap-1 text-[11px] font-bold text-neutral-400 mt-1 group-hover:text-[#b90101]">
+                      <Eye className="w-3.5 h-3.5" />
+                      View details
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] font-black uppercase bg-[#b90101]/10 text-[#b90101] rounded-full px-2.5 py-1">
-                      {seat?.seatType ?? "STANDARD"}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <span
-                      className={`text-[10px] font-black uppercase rounded-full px-2.5 py-1 ${
-                        seat?.status === "ACTIVE"
-                          ? "bg-emerald-50 text-emerald-600"
-                          : "bg-neutral-100 text-neutral-500"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                        getSeatStatus(seat) === "ACTIVE"
+                          ? "bg-emerald-100 text-emerald-600"
+                          : "bg-red-100 text-red-600"
                       }`}
                     >
-                      {seat?.status || "—"}
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          getSeatStatus(seat) === "ACTIVE"
+                            ? "bg-emerald-500 animate-pulse"
+                            : "bg-red-600"
+                        }`}
+                      />
+                      {getSeatStatus(seat)}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSeatStatus(seat)}
+                      disabled={busySeatUuid === (seat?.uuid ?? seat?.id ?? seat?._id)}
+                      className={`inline-flex items-center justify-center min-w-[82px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        getSeatStatus(seat) === "ACTIVE"
+                          ? "bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/30"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/30"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {busySeatUuid === (seat?.uuid ?? seat?.id ?? seat?._id) ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : getSeatStatus(seat) === "ACTIVE" ? (
+                        "Deactivate"
+                      ) : (
+                        "Activate"
+                      )}
+                    </button>
                   </div>
                 </li>
               ))}
@@ -574,6 +703,129 @@ export default function AdminSeatsPage() {
           </section>
         </div>
       </div>
+
+      {/* Seat details dialog — GET /seats/:uuid */}
+      {seatDetailsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center font-sans">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={closeSeatDetails}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seat-details-title"
+            className="relative z-10 w-full max-w-md mx-4 rounded-2xl bg-white border border-neutral-200 shadow-2xl p-6 max-h-[85vh] overflow-y-auto space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3
+                id="seat-details-title"
+                className="flex items-center gap-2 text-base font-black text-neutral-900"
+              >
+                <span className="w-7 h-7 rounded-lg bg-[#b90101]/10 text-[#b90101] flex items-center justify-center">
+                  <Armchair className="w-4 h-4" />
+                </span>
+                Seat Details
+              </h3>
+              <button
+                type="button"
+                onClick={closeSeatDetails}
+                title="Close"
+                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-800 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {!selectedSeatUuid ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
+                <p className="mt-3 text-sm font-bold text-neutral-700">
+                  This seat has no UUID, so its details cannot be loaded.
+                </p>
+              </div>
+            ) : isSeatDetailsLoading ? (
+              <div className="flex items-center justify-center gap-3 py-12 text-neutral-500">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm font-bold">Fetching seat details…</span>
+              </div>
+            ) : isSeatDetailsError ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-8 h-8 text-red-500 mx-auto" />
+                <p className="mt-3 text-sm font-bold text-red-700">
+                  Failed to load seat details.
+                </p>
+                <p className="text-xs font-semibold text-neutral-500 mt-1 break-all">
+                  {getSeatDetailsErrorText()}
+                </p>
+                <button
+                  type="button"
+                  onClick={refetchSeatDetails}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#b90101] text-white rounded-xl text-xs font-black hover:brightness-110 transition"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Try Again
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Hero header with the seat label */}
+                <div className="rounded-2xl bg-gradient-to-br from-[#b90101] to-[#860101] p-5 text-white relative overflow-hidden shadow-sm">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-white/70">
+                    Seat
+                  </p>
+                  <p className="text-3xl font-black leading-tight mt-0.5">
+                    {getSeatLabel(seatDetails) || "—"}
+                  </p>
+                  <p className="text-xs font-semibold text-white/80 mt-1.5">
+                    {getHallName(hall)} · Row {seatDetails?.rowLabel ?? "—"} ·{" "}
+                    Seat #{seatDetails?.seatNumber ?? "—"}
+                  </p>
+                  <Armchair className="w-11 h-11 text-white/90 absolute bottom-3.5 right-4" />
+                </div>
+
+                {/* Attributes */}
+                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-400">
+                  Attributes
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {renderDetail("Row Label", seatDetails?.rowLabel)}
+                  {renderDetail("Seat Number", seatDetails?.seatNumber)}
+                  {renderDetail("Seat Type", seatDetails?.seatType)}
+                  {renderDetail("Status", seatDetails?.status, "badge")}
+                </div>
+
+                {/* Identifiers */}
+                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-400">
+                  Identifiers
+                </p>
+                <div className="grid grid-cols-1 gap-3">
+                  {renderDetail("Seat UUID", seatDetails?.uuid, "mono")}
+                  {renderDetail("Hall UUID", seatDetails?.hallUuid, "mono")}
+                </div>
+
+                {/* Audit */}
+                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-400">
+                  Audit
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {renderDetail("Created At", formatDateTime(seatDetails?.createdAt))}
+                  {renderDetail("Updated At", formatDateTime(seatDetails?.updatedAt))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeSeatDetails}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#b90101] hover:brightness-110 text-white text-sm font-black py-3 transition active:scale-[0.98]"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
