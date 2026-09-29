@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 // Match these values to the category enum in your backend.
-export const CONCESSION_CATEGORIES = ["FOOD", "DRINK", "SNACK", "COMBO"];
+export const CONCESSION_CATEGORIES = ["FOOD", "DRINK", ]; //"SNACK", "COMBO"
 
 const EMPTY_FORM = {
   name: "",
