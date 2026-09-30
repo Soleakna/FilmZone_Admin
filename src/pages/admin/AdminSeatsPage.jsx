@@ -17,6 +17,13 @@ import { toast } from "react-toastify";
 import { Link, useParams } from "react-router";
 import { useGetHallsQuery } from "../../services/api/hallApi";
 import { useSeatData } from "./hooks/useSeatData";
+import {
+  getBulkSeatCountError,
+  getBulkStartSeatNumberError,
+  getCoupleSeatNumberError,
+  getSeatNumberError,
+  SEATS_PER_ROW,
+} from "../../utils/seatValidation";
 
 const inputClass =
   "w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-900 outline-none focus:border-[#b90101] focus:ring-2 focus:ring-[#b90101]/20 transition";
@@ -44,9 +51,9 @@ const DEFAULT_BULK_ROW = {
   seatType: "STANDARD",
 };
 
-// Each row contains 12 seats; the allowed row letters depend on the hall's
-// capacity (e.g. 36 seats → A–C, 48 → A–D, 60 → A–E, 200 → A–Q).
-const SEATS_PER_ROW = 12;
+// Each row contains SEATS_PER_ROW seats (imported from seatValidation); the
+// allowed row letters depend on the hall's capacity (e.g. 36 seats → A–C,
+// 48 → A–D, 60 → A–E, 200 → A–Q).
 
 // Converts an uppercase label to its 1-based row index (A=1, B=2, … Z=26,
 // AA=27, …). Input must already pass the /^[A-Z]+$/ check.
@@ -143,12 +150,9 @@ export default function AdminSeatsPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // A seat label that already exists in this hall is blocked up front — the
-    // matching inline error is already shown under the Seat Number field.
-    const label = buildSeatLabel(form.rowLabel, form.seatNumber);
-    const freshSeats = await refetchSeatsForCheck();
-    if (label && isTakenInList(label, freshSeats)) {
-      setNormalSeatErrors([]);
+    // Seat Number must be a whole number between 1 and 12 — the inline error
+    // under the Seat Number field explains the exact problem.
+    if (normalSeatNumberError) {
       return;
     }
 
@@ -158,9 +162,18 @@ export default function AdminSeatsPage() {
       return;
     }
 
+    // A seat label that already exists in this hall is blocked up front — the
+    // matching inline error is already shown under the Seat Number field.
+    const label = buildSeatLabel(form.rowLabel, form.seatNumber);
+    const freshSeats = await refetchSeatsForCheck();
+    if (label && isTakenInList(label, freshSeats)) {
+      setNormalSeatErrors([]);
+      return;
+    }
+
     const payload = {
       rowLabel: form.rowLabel.trim().toUpperCase(),
-      seatNumber: Number(form.seatNumber) || 1,
+      seatNumber: Number(form.seatNumber),
       seatType: form.seatType,
       xPosition: Number(form.xPosition) || 0,
       yPosition: Number(form.yPosition) || 0,
@@ -281,6 +294,13 @@ export default function AdminSeatsPage() {
   const handleCoupleSubmit = async (event) => {
     event.preventDefault();
 
+    // First Seat Number must be a whole number between 1 and 11 so the pair
+    // (n and n + 1) stays inside seat numbers 1–12 — the inline error under
+    // First Seat Number explains the exact problem.
+    if (coupleSeatNumberError) {
+      return;
+    }
+
     // Block if either of the two generated labels already exists — the inline
     // errors under First Seat Number name the conflicting label(s).
     const freshSeats = await refetchSeatsForCheck();
@@ -301,7 +321,7 @@ export default function AdminSeatsPage() {
 
     const payload = {
       rowLabel: coupleForm.rowLabel.trim().toUpperCase(),
-      firstSeatNumber: Number(coupleForm.firstSeatNumber) || 1,
+      firstSeatNumber: Number(coupleForm.firstSeatNumber),
     };
 
     const result = await handleCreateCoupleSeat(payload);
@@ -396,15 +416,18 @@ export default function AdminSeatsPage() {
   // Bulk seats — every label each row will generate, flagged per row.
   const bulkDuplicateByRow = getTakenLabels(bulkRows, seats);
 
-  // Seat-number range validation for bulk rows — seat numbers within a row
-  // must stay 1–12, i.e. Start + NumberOfSeats − 1 must not exceed 12.
+  // Seat-number range validation for bulk rows — every seat number created by
+  // a row must stay 1–12, i.e. Start and Start + NumberOfSeats − 1 must both
+  // be whole numbers inside that range. Inline errors show under the fields.
   const bulkSeatRangeErrors = bulkRows.map((row) => {
-    if (row.startSeatNumber === "" || row.startSeatNumber == null) return "";
+    const startError = getBulkStartSeatNumberError(row.startSeatNumber);
+    if (startError) return startError;
+    if (String(row.numberOfSeats ?? "").trim() === "") return "";
+    const countError = getBulkSeatCountError(row.numberOfSeats);
+    if (countError) return countError;
     const startSeat = Number(row.startSeatNumber);
-    if (!Number.isFinite(startSeat)) return "";
-    if (startSeat < 1) return "Start Seat Number must be between 1 and 12.";
-    const effectiveCount = Math.max(Number(row.numberOfSeats) || 1, 1);
-    if (startSeat + effectiveCount - 1 > 12) {
+    const count = Number(row.numberOfSeats);
+    if (startSeat + count - 1 > SEATS_PER_ROW) {
       return "The seat numbers cannot exceed 12.";
     }
     return "";
@@ -428,6 +451,13 @@ export default function AdminSeatsPage() {
   );
   const bulkRowLabelErrors = bulkRows.map((row) =>
     getRowLabelError(row.rowLabel, hallCapacity),
+  );
+
+  // Seat Number validation — every row has exactly SEATS_PER_ROW (12) seats,
+  // so the only valid numbers for any row label are the whole numbers 1–12.
+  const normalSeatNumberError = getSeatNumberError(form.seatNumber);
+  const coupleSeatNumberError = getCoupleSeatNumberError(
+    coupleForm.firstSeatNumber,
   );
 
   const handleToggleSeatStatus = async (seat) => {
@@ -754,12 +784,19 @@ export default function AdminSeatsPage() {
               <input
                 type="number"
                 min="1"
+                max={SEATS_PER_ROW}
                 value={form.seatNumber}
                 onChange={setField("seatNumber")}
                 required
-                className={`${inputClass} ${normalErrorLabels.length ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+                className={`${inputClass} ${normalErrorLabels.length || normalSeatNumberError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
               />
-              {normalErrorLabels.length > 0 && (
+              {normalSeatNumberError && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                  <CircleAlert className="w-4 h-4 shrink-0" />
+                  <span>{normalSeatNumberError}</span>
+                </p>
+              )}
+              {!normalSeatNumberError && normalErrorLabels.length > 0 && (
                 <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
                   <CircleAlert className="w-4 h-4 shrink-0" />
                   <span>
@@ -845,12 +882,19 @@ export default function AdminSeatsPage() {
                 <input
                   type="number"
                   min="1"
+                  max={SEATS_PER_ROW - 1}
                   value={coupleForm.firstSeatNumber}
                   onChange={setCoupleField("firstSeatNumber")}
                   required
-                  className={`${inputClass} ${coupleErrorLabels.length ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+                  className={`${inputClass} ${coupleErrorLabels.length || coupleSeatNumberError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                 />
-                {coupleErrorLabels.length > 0 && (
+                {coupleSeatNumberError && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                    <CircleAlert className="w-4 h-4 shrink-0" />
+                    <span>{coupleSeatNumberError}</span>
+                  </p>
+                )}
+                {!coupleSeatNumberError && coupleErrorLabels.length > 0 && (
                   <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
                     <CircleAlert className="w-4 h-4 shrink-0" />
                     <span>
@@ -939,6 +983,7 @@ export default function AdminSeatsPage() {
                           <input
                             type="number"
                             min="1"
+                            max={SEATS_PER_ROW}
                             value={row.numberOfSeats}
                             onChange={(e) =>
                               setBulkRowField(
@@ -958,6 +1003,7 @@ export default function AdminSeatsPage() {
                           <input
                             type="number"
                             min="1"
+                            max={SEATS_PER_ROW}
                             value={row.startSeatNumber}
                             onChange={(e) =>
                               setBulkRowField(

@@ -7,6 +7,13 @@ import {
   useCreateBulkSeatsMutation,
   useUpdateSeatStatusMutation,
 } from "../../../services/api/seatApi";
+import {
+  getBulkSeatCountError,
+  getBulkStartSeatNumberError,
+  getCoupleSeatNumberError,
+  getSeatNumberError,
+  SEATS_PER_ROW,
+} from "../../../utils/seatValidation";
 
 const extractErrorMessage = (err) => {
   if (err?.status === 401 || err?.status === 403) {
@@ -79,6 +86,50 @@ const extractSeatLabels = (err) => {
   ];
 };
 
+// --- Seat-number validation guards (defense-in-depth) ---
+// Every row has exactly SEATS_PER_ROW (12) seats, so the only valid seat
+// numbers for any row label are the whole numbers 1–12 (A1–A12, B1–B12, …).
+// These guards run immediately before an API call so an invalid seat can
+// never be created even when the form UI is bypassed. They return "" when the
+// payload is valid, otherwise a user-facing error message.
+
+const validateCreateSeatPayload = (seatData) => {
+  const raw = String(seatData?.seatNumber ?? "").trim();
+  if (raw === "") return "Seat number is required.";
+  return getSeatNumberError(raw);
+};
+
+const validateCoupleSeatPayload = (seatData) => {
+  const raw = String(seatData?.firstSeatNumber ?? "").trim();
+  if (raw === "") return "First seat number is required.";
+  return getCoupleSeatNumberError(raw);
+};
+
+const validateBulkRowsPayload = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return "At least one row is required.";
+  }
+  for (const row of rows) {
+    const label = String(row?.rowLabel ?? "").trim().toUpperCase() || "?";
+    const startRaw = String(row?.startSeatNumber ?? "").trim();
+    if (startRaw === "") {
+      return `Start seat number is required for row ${label}.`;
+    }
+    const startError = getBulkStartSeatNumberError(startRaw);
+    if (startError) return `${startError} (row ${label})`;
+    const countRaw = String(row?.numberOfSeats ?? "").trim();
+    if (countRaw === "") {
+      return `Number of seats is required for row ${label}.`;
+    }
+    const countError = getBulkSeatCountError(countRaw);
+    if (countError) return `${countError} (row ${label})`;
+    if (Number(startRaw) + Number(countRaw) - 1 > SEATS_PER_ROW) {
+      return `The seat numbers cannot exceed ${SEATS_PER_ROW} (row ${label}).`;
+    }
+  }
+  return "";
+};
+
 export function useSeatData(hallUuid, selectedSeatUuid = null) {
   const {
     data: seats = [],
@@ -115,6 +166,13 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
     seat?.seatLabel || `${seat?.rowLabel ?? ""}${seat?.seatNumber ?? ""}`.trim();
 
   const handleCreateSeat = async (seatData) => {
+    // Never send an invalid seat number to the API — a seat in any row must
+    // be a whole number between 1 and 12 (e.g. only A1–A12 for row A).
+    const guardError = validateCreateSeatPayload(seatData);
+    if (guardError) {
+      toast.error(guardError);
+      return { created: false, validationError: guardError };
+    }
     try {
       const created = await createSeat({ hallUuid, ...seatData }).unwrap();
       const seatLabel =
@@ -141,6 +199,13 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
   };
 
   const handleCreateCoupleSeat = async (seatData) => {
+    // The couple pair occupies {row}{n} and {row}{n + 1}, so the first seat
+    // number must be a whole number between 1 and 11 to keep both ≤ 12.
+    const guardError = validateCoupleSeatPayload(seatData);
+    if (guardError) {
+      toast.error(guardError);
+      return { created: false, validationError: guardError };
+    }
     try {
       const created = await createCoupleSeat({ hallUuid, ...seatData }).unwrap();
       const groupLabel =
@@ -173,6 +238,13 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
   };
 
   const handleCreateBulkSeats = async (rows) => {
+    // Every generated label must stay inside each row's 1–12 seat numbers —
+    // invalid ranges are rejected before any request reaches the API.
+    const guardError = validateBulkRowsPayload(rows);
+    if (guardError) {
+      toast.error(guardError);
+      return { created: false, validationError: guardError };
+    }
     try {
       const created = await createBulkSeats({ hallUuid, rows }).unwrap();
       const count = Array.isArray(created) ? created.length : rows.length;
