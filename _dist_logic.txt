@@ -1,0 +1,83 @@
+==== LOGIC RANGE (wrapped) ====
+0000: ?`?`}`,q=e=>e?.capacity??`—`,J=e=>e?.seatLabel||`${e?.rowLabel??``}${e?.seatNumber??``}`.trim(),oe=e=>e?.xPosition===void 0&&e?.yPosition===void 0?null:`(${e?.xPosition??0}, ${e?.y
+0001: Position??0})`,se=e=>(e?.status||`ACTIVE`).toUpperCase()===`ACTIVE`?`ACTIVE`:`INACTIVE`,ce=(e,t)=>{let n=(e||``).trim().toUpperCase(),r=Number(t);return!n||!Number.isInteger(r)||r<
+0002: 1?``:`${n}${r}`},le=e=>(e||``).trim().toLowerCase(),ue=(e,t)=>e&&(t||[]).some(t=>le(J(t))===le(e)),de=e=>ue(e,_),fe=async()=>{let e=await E().catch(()=>null);return Array.isArray(e
+0003: ?.data)?e.data:_},pe=(e,t)=>e.map(e=>{let n=Number(e.startSeatNumber)||1,r=Math.max(Number(e.numberOfSeats)||0,0),i=[];for(let a=0;a<r;a+=1){let r=ce(e.rowLabel,n+a);r&&ue(r,t)&&i.
+0004: push(r)}return[...new Set(i)]}),me=ce(r.rowLabel,r.seatNumber),he=me&&de(me)?me:null,ge=[...new Set([he,...d].filter(Boolean))],_e=ce(R.rowLabel,R.firstSeatNumber),ve=ce(R.rowLabel
+0005: ,_e?Number(R.firstSeatNumber)+1:0),ye=[_e,ve].filter(e=>e&&de(e)),be=[...new Set([...ye,...p].filter(Boolean))],xe=pe(H,_),Se=H.map(e=>zj(e.startSeatNumber)||(String(e.numberOfSeat
+0006: s??``).trim()===``?``:Bj(e.numberOfSeats)||(Number(e.startSeatNumber)+Number(e.numberOfSeats)-1>12?`The seat numbers cannot exceed 12.`:``))),Ce=e=>{V(e),f([]),m([]),g([])},we=n?.c
+0007: apacity,Te=tM(r.rowLabel,we),Ee=tM(R.rowLabel,we),De=H.map(e=>tM(e.rowLabel,we)),Oe=Lj(r.seatNumber),ke=Rj(R.firstSeatNumber),Ae=async e=>{let t=e?.uuid??e?.id??e?._id??e?.seatUuid
+0008: ;o(t);try{let t=se(e)===`ACTIVE`?`INACTIVE`:`ACTIVE`;await A(e,t)}finally{o(null)}},je=e=>{let t=e?.uuid??e?.id??e?._id??e?.seatUuid;u(t),c(!0)},Me=()=>{c(!1),u(null)},Ne=()=>P?.da
+0009: ta?.message||P?.data?.error||P?.data?.detail||P?.error||(P?.status?`Server returned HTTP ${P.status}`:`Unknown error`),Pe=e=>{if(!e)return`—`;try{let t=new Date(e);return Number.is
+0010: NaN(t.getTime())?`—`:t.toLocaleString()}catch{return`—`}},Fe=(e,t,n)=>(0,$.jsxs)(`div`,{className:`rounded-xl bg-neutral-50 border border-neutral-200/70 px-3.5 py-2.5 shadow-xs`,ch
+0011: ildren:[(0,$.jsxs)(`p`,{className:`text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1.5`,children:[(0,$.jsx)(`span`,{className:`w-1.5 h-1.5 r
+0012: ounded-full bg-[#b90101]/40`}),e]}),n===`badge`?(0,$.jsxs)(`span`,{className:`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${se(j)===`ACTIVE`?`bg-em
+0013: erald-100 text-emerald-600`:`bg-red-100 text-red-600`}`,children:[(0,$.jsx)(`span`,{className:`w-2 h-2 rounded-full ${se(j)===`ACTIVE`?`bg-emerald-500 animate-pulse`:`bg-red-600`}`
+0014: }),t??`—`]}):(0,$.jsx)(`p`,{className:`mt-0.5 text-sm font-bold ${n===`mono`?`font-mono text-xs font-semibold text-neutral-600 break-all`:`text-neutral-900`}`,children:t!=null&&t!=
+0015: =``?t:`—`})]});return(0,$.jsxs)(`div`,{className:`space-y-8 font-sans`,children:[(0,$.jsxs)(`div`,{className:`flex flex-wrap items-center justify-between gap-4`,children:[(0,$.jsxs
+0016: )(`div`,{children:[(0,$.jsxs)(Xi,{to:`/admin/halls`,className:`inline-flex items-center gap-1.5 text-xs font-bold text-neutral-500 hover:text-[#b90101] transition mb-2`,children:[(
+0017: 0,$.jsx)(dm,{className:`w-3.5 h-3.5`}),`Back to Manage Halls`]}),(0,$.jsx)(`h1`,{className:`text-2xl font-black text-(--color-primary) tracking-tight`,children:`Manage Seats`}),(0,
+0018: $.jsxs)(`p`,{className:`text-sm font-semibold text-neutral-500 mt-1`,children:[ae(n),` · Hall UUID: `,e]})]}),(0,$.jsxs)(`button`,{type:`button`,onClick:E,disabled:y,className:`inl
+0019: ine-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-white px-4 py-2.5 text-sm font-black text-neutral-700 hover:text-[#b90101] hover:border-[#b90101]/40 trans
+0020: ition disabled:opacity-60 disabled:pointer-events-none`,children:[(0,$.jsx)(Gm,{className:`w-4 h-4 ${y?`animate-spin`:``}`}),`Refresh`]})]}),x&&(0,$.jsxs)(`div`,{className:`flex it
+0021: ems-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4`,children:[(0,$.jsx)($m,{className:`w-5 h-5 text-red-500 shrink-0`}),(0,$.jsxs)(`div`,{children:[(0,$.jsx)(`p`,{clas
+0022: sName:`text-sm font-bold text-red-700`,children:`Failed to load seats`}),(0,$.jsx)(`p`,{className:`text-xs font-semibold text-red-600 mt-0.5`,children:S?.status===401||S?.status===
+0023: 403?`Unauthorized — connect a valid cinema admin account (access token) first, then press Refresh.`:S?.data?.message||S?.data?.error||S?.error||S?.status||`Unknown error`})]})]}),(
+0024: 0,$.jsxs)(`div`,{className:`grid grid-cols-1 lg:grid-cols-5 gap-6`,children:[(0,$.jsxs)(`section`,{className:`lg:col-span-3 bg-white rounded-3xl border border-neutral-200/80 shadow
+0025: -xs p-6`,children:[(0,$.jsxs)(`div`,{className:`flex items-center justify-between mb-5`,children:[(0,$.jsx)(`h2`,{className:`text-base font-black text-neutral-900`,children:`Seat L
+0026: ist`}),(0,$.jsxs)(`div`,{className:`flex items-center gap-2`,children:[(0,$.jsxs)(`span`,{className:`text-xs font-black text-neutral-600 bg-neutral-100 rounded-full px-3 py-1`,chil
+0027: dren:[`Capacity: `,q(n)]}),(0,$.jsxs)(`span`,{className:`text-xs font-black text-neutral-500 bg-[#b90101]/10 text-[#b90101] rounded-full px-3 py-1`,children:[_.length,` seat(s)`]})
+0028: ]})]}),v?(0,$.jsxs)(`div`,{className:`flex items-center justify-center gap-3 py-16 text-neutral-500`,children:[(0,$.jsx)(zm,{className:`w-5 h-5 animate-spin`}),(0,$.jsx)(`span`,{cl
+0029: assName:`text-sm font-bold`,children:`Fetching seats from the API…`})]}):_.length===0?(0,$.jsxs)(`div`,{className:`text-center py-16`,children:[(0,$.jsx)(um,{className:`w-10 h-10 t
+0030: ext-neutral-300 mx-auto`}),(0,$.jsx)(`p`,{className:`mt-3 text-sm font-bold text-neutral-500`,children:`No seats in this hall yet.`}),(0,$.jsx)(`p`,{className:`text-xs font-semibol
+0031: d text-neutral-400 mt-1`,children:`Use the form on the right to create your first seat.`})]}):(0,$.jsx)(`ul`,{className:`divide-y divide-neutral-100`,children:_.map((e,t)=>(0,$.jsx
+0032: s)(`li`,{className:`flex items-center justify-between gap-4 py-3.5`,children:[(0,$.jsxs)(`div`,{className:`min-w-0 flex-1 cursor-pointer group`,onClick:()=>je(e),title:`View seat d
+0033: etails`,children:[(0,$.jsx)(`p`,{className:`text-sm font-extrabold text-neutral-900 truncate group-hover:text-[#b90101] group-hover:underline`,children:J(e)}),(0,$.jsxs)(`p`,{class
+0034: Name:`text-xs font-semibold text-neutral-500 mt-0.5`,children:[`Row: `,e?.rowLabel??`—`,` · Seat #:`,` `,e?.seatNumber??`—`,oe(e)?` · Position ${oe(e)}`:``]}),(0,$.jsxs)(`p`,{class
+0035: Name:`inline-flex items-center gap-1 text-[11px] font-bold text-neutral-400 mt-1 group-hover:text-[#b90101]`,children:[(0,$.jsx)(km,{className:`w-3.5 h-3.5`}),`View details`]})]}),
+0036: (0,$.jsxs)(`div`,{className:`flex flex-wrap items-center gap-2 shrink-0`,children:[(0,$.jsxs)(`span`,{className:`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs fon
+0037: t-bold ${se(e)===`ACTIVE`?`bg-emerald-100 text-emerald-600`:`bg-red-100 text-red-600`}`,children:[(0,$.jsx)(`span`,{className:`w-1.5 h-1.5 rounded-full ${se(e)===`ACTIVE`?`bg-emera
+0038: ld-500 animate-pulse`:`bg-red-600`}`}),se(e)]}),(0,$.jsx)(`button`,{type:`button`,onClick:()=>Ae(e),disabled:a===(e?.uuid??e?.id??e?._id),className:`inline-flex items-center justif
+0039: y-center min-w-[82px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${se(e)===`ACTIVE`?`bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/30`:`bg-emerald-
+0040: 600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/30`} disabled:opacity-50 disabled:cursor-not-allowed`,children:a===(e?.uuid??e?.id??e?._id)?(0,$.jsx)(zm,{className
+0041: :`w-3.5 h-3.5 animate-spin`}):se(e)===`ACTIVE`?`Deactivate`:`Activate`})]})]},e?.uuid??e?.id??e?._id??J(e)??t))})]}),(0,$.jsx)(`div`,{className:`lg:col-span-2`,children:(0,$.jsxs)(
+0042: `section`,{className:`bg-white rounded-3xl border border-neutral-200/80 shadow-xs p-6`,children:[(0,$.jsxs)(`div`,{className:`space-y-3`,children:[(0,$.jsxs)(`div`,{children:[(0,$.
+0043: jsx)(`h2`,{className:`text-base font-black text-neutral-900`,children:`Create Seat`}),(0,$.jsx)(`p`,{className:`text-xs font-semibold text-neutral-500 mt-0.5`,children:B===`COUPLE`
+0044: ?`Creates a couple seat pair starting at the given seat number.`:B===`BULK`?`Add many seats at once — one entry per row.`:`Add a single seat to this hall.`})]}),(0,$.jsxs)(`div`,{c
+0045: lassName:`grid grid-cols-3 gap-2`,children:[(0,$.jsxs)(`button`,{type:`button`,onClick:()=>Ce(`NORMAL`),className:`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rou
+0046: nded-full text-[11px] font-bold transition cursor-pointer ${B===`NORMAL`?`bg-[#b90101] text-white shadow-xs`:`bg-neutral-100 hover:bg-neutral-200 text-neutral-700`}`,children:[(0,$
+0047: .jsx)(um,{className:`w-3.5 h-3.5`}),(0,$.jsx)(`span`,{children:`Normal Seat`})]}),(0,$.jsxs)(`button`,{type:`button`,onClick:()=>Ce(`COUPLE`),className:`w-full inline-flex items-ce
+0048: nter justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${B===`COUPLE`?`bg-[#b90101] text-white shadow-xs`:`bg-neutral-100 hover:bg-neutral-
+0049: 200 text-neutral-700`}`,children:[(0,$.jsx)(Pm,{className:`w-3.5 h-3.5`}),(0,$.jsx)(`span`,{children:`Couple Seat`})]}),(0,$.jsxs)(`button`,{type:`button`,onClick:()=>Ce(`BULK`),cl
+0050: assName:`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${B===`BULK`?`bg-[#b90101] text-white shadow-xs`
+0051: :`bg-neutral-100 hover:bg-neutral-200 text-neutral-700`}`,children:[(0,$.jsx)(Lm,{className:`w-3.5 h-3.5`}),(0,$.jsx)(`span`,{children:`Bulk Seats`})]})]})]}),B===`NORMAL`&&(0,$.js
+0052: xs)(`form`,{onSubmit:L,className:`mt-5 space-y-4`,children:[(0,$.jsxs)(`div`,{children:[(0,$.jsx)(`label`,{className:Yj,children:`Row Label`}),(0,$.jsx)(`input`,{value:r.rowLabel,o
+0053: nChange:I(`rowLabel`),placeholder:`e.g. A`,required:!0,maxLength:4,className:`${Jj} ${ge.length||Te?`border-red-400 focus:border-red-500 focus:ring-red-500/20`:``}`}),Te&&(0,$.jsxs
+0054: )(`p`,{className:`mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink-0`}),(0,$.jsx)(`span`,{children:Te})]})]}),
+0055: (0,$.jsxs)(`div`,{children:[(0,$.jsx)(`label`,{className:Yj,children:`Seat Number`}),(0,$.jsx)(`input`,{type:`number`,min:`1`,max:12,value:r.seatNumber,onChange:I(`seatNumber`),req
+0056: uired:!0,className:`${Jj} ${ge.length||Oe?`border-red-400 focus:border-red-500 focus:ring-red-500/20`:``}`}),Oe&&(0,$.jsxs)(`p`,{className:`mt-1.5 flex items-center gap-1.5 text-sm
+0057:  font-semibold text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink-0`}),(0,$.jsx)(`span`,{children:Oe})]}),!Oe&&ge.length>0&&(0,$.jsxs)(`p`,{className:`mt-1.5 flex item
+0058: s-center gap-1.5 text-sm font-semibold text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink-0`}),(0,$.jsxs)(`span`,{children:[`Seat already exists with SeatLabel`,` `,ge
+0059: .join(` `)]})]})]}),(0,$.jsxs)(`div`,{className:`grid grid-cols-2 gap-4`,children:[(0,$.jsxs)(`div`,{children:[(0,$.jsx)(`label`,{className:Yj,children:`X Position`}),(0,$.jsx)(`in
+0060: put`,{type:`number`,value:r.xPosition,onChange:I(`xPosition`),className:Jj})]}),(0,$.jsxs)(`div`,{children:[(0,$.jsx)(`label`,{className:Yj,children:`Y Position`}),(0,$.jsx)(`input
+0061: `,{type:`number`,value:r.yPosition,onChange:I(`yPosition`),className:Jj})]})]}),(0,$.jsxs)(`button`,{type:`submit`,disabled:C,className:`w-full inline-flex items-center justify-cen
+0062: ter gap-2 rounded-xl bg-[#b90101] hover:brightness-110 text-white text-sm font-black py-3 transition active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none`,children:
+0063: [C?(0,$.jsx)(zm,{className:`w-4 h-4 animate-spin`}):(0,$.jsx)(Um,{className:`w-4 h-4`}),C?`Creating…`:`Create Normal Seat`]})]}),B===`COUPLE`&&(0,$.jsxs)(`form`,{onSubmit:ie,classN
+0064: ame:`mt-5 space-y-4`,children:[(0,$.jsxs)(`div`,{children:[(0,$.jsx)(`label`,{className:Yj,children:`Row Label`}),(0,$.jsx)(`input`,{value:R.rowLabel,onChange:re(`rowLabel`),placeh
+0065: older:`e.g. A`,required:!0,maxLength:4,className:`${Jj} ${be.length||Ee?`border-red-400 focus:border-red-500 focus:ring-red-500/20`:``}`}),Ee&&(0,$.jsxs)(`p`,{className:`mt-1.5 fle
+0066: x items-center gap-1.5 text-sm font-semibold text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink-0`}),(0,$.jsx)(`span`,{children:Ee})]})]}),(0,$.jsxs)(`div`,{children:[
+0067: (0,$.jsx)(`label`,{className:Yj,children:`First Seat Number`}),(0,$.jsx)(`input`,{type:`number`,min:`1`,max:11,value:R.firstSeatNumber,onChange:re(`firstSeatNumber`),required:!0,cl
+0068: assName:`${Jj} ${be.length||ke?`border-red-400 focus:border-red-500 focus:ring-red-500/20`:``}`}),ke&&(0,$.jsxs)(`p`,{className:`mt-1.5 flex items-center gap-1.5 text-sm font-semib
+0069: old text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink-0`}),(0,$.jsx)(`span`,{children:ke})]}),!ke&&be.length>0&&(0,$.jsxs)(`p`,{className:`mt-1.5 flex items-center ga
+0070: p-1.5 text-sm font-semibold text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink-0`}),(0,$.jsxs)(`span`,{children:[`Seat already exists with SeatLabel`,` `,be.join(` `)]
+0071: })]})]}),(0,$.jsxs)(`button`,{type:`submit`,disabled:w,className:`w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#b90101] hover:brightness-110 text-white text-
+0072: sm font-black py-3 transition active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none`,children:[w?(0,$.jsx)(zm,{className:`w-4 h-4 animate-spin`}):(0,$.jsx)(Pm,{class
+0073: Name:`w-4 h-4`}),w?`Creating…`:`Create Couple Seat`]})]}),B===`BULK`&&(0,$.jsxs)(`div`,{className:`mt-5 space-y-4`,children:[h.length>0&&(0,$.jsx)(`div`,{className:`rounded-xl bord
+0074: er border-red-200 bg-red-50 p-3`,children:(0,$.jsxs)(`p`,{className:`flex items-center gap-1.5 text-sm font-semibold text-red-600`,children:[(0,$.jsx)(bm,{className:`w-4 h-4 shrink
+0075: -0`}),(0,$.jsxs)(`span`,{children:[`Seat already exists with SeatLabel`,` `,h.join(` `)]})]})}),(0,$.jsx)(`div`,{className:`space-y-3`,children:H.map((e,t)=>(0,$.jsxs)(`div`,{class
+0076: Name:`rounded-xl border border-neutral-200 bg-white p-4 space-y-3`,children:[(0,$.jsxs)(`div`,{className:`flex items-center justify-between`,children:[(0,$.jsxs)(`span`,{className:
+0077: `text-[10px] font-black uppercase tracking-wider text-neutral-400`,children:[`Seat Row `,t+1]}),H.length>1&&(0,$.jsx)(`button`,{type:`button`,onClick:()=>G(t),title:`Remove this ro
+0078: w`,className:`p-1.5 text-neutral-400 hover:text-[#b90101] cursor-pointer`,children:(0,$.jsx)(Qm,{className:`w-3.5 h-3.5`})})]}),(0,$.jsxs)(`div`,{className:`space-y-3`,children:[(0
+0079: ,$.jsxs)(`div`,{className:`grid grid-cols-2 gap-3`,children:[(0,$.jsxs)(`div`,{children:[(0,$.jsx)(`label`,{className:Yj,children:`Row Label`}),(0,$.jsx)(`input`,{value:e.rowLabel,
+0080: onChange:e=>W(t,`rowLabel`,e.target.value),placeholder:`e.g. A`,maxLength:4,className:`${Jj} ${xe[t]?.length||De[t]?`border-red-400 focus:border-red-500 focus:ring-red-500/20`:``}`
+0081: }),De[t]&&(0,$.jsxs)(`p`,{className:`mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600`,children:[(0,$
