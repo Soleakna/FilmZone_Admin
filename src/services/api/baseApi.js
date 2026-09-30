@@ -3,14 +3,14 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 const TMDB_API_BASE =
   import.meta.env.VITE_API_BASE_URL || "https://api.themoviedb.org/3";
 const TMDB_ACCESS_TOKEN = import.meta.env.VITE_TMDB_ACCESS_TOKEN;
+
+// Uses /cinema-api proxy in local development to bypass browser CORS
 const CINEMA_API_BASE =
   import.meta.env.VITE_CINEMA_API_BASE_URL ||
-  "https://cinema-booking-api.eunglyzhia.com/api/v1";
+  (import.meta.env.DEV
+    ? "/cinema-api/api/v1"
+    : "https://cinema-booking-api.eunglyzhia.com/api/v1");
 
-/**
- * Route cinema backend endpoints (halls, auth, bookings, ...) to the
- * FilmZone Cinema Booking API. Everything else goes to TMDB.
- */
 const isCinemaApiEndpoint = (url) => {
   if (typeof url !== "string") return false;
   return [
@@ -41,7 +41,7 @@ const tmdbBaseQuery = fetchBaseQuery({
   },
 });
 
-// Base query for the Cinema Booking API (halls, auth, bookings, ...)
+// Base query for the Cinema Booking API (halls, auth, bookings, users, ...)
 const cinemaBaseQuery = fetchBaseQuery({
   baseUrl: CINEMA_API_BASE,
   prepareHeaders: (headers, { getState }) => {
@@ -84,6 +84,7 @@ export const baseApi = createApi({
     "Concession",
     "Auth",
     "Favorite",
+    "Users",
   ],
   endpoints: () => ({}),
 });

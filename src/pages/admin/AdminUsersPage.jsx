@@ -1,10 +1,5 @@
-// src/pages/admin/AdminUsersPage.jsx
-//
-// Light-themed to match the rest of your admin panel (sidebar, dashboard,
-// analytics page) — no dark: variants, since the admin section doesn't
-// actually use dark mode.
-
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
   Users,
@@ -14,12 +9,26 @@ import {
   Loader2,
   Shield,
   RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Check,
+  Trash2,
 } from "lucide-react";
 import {
   useGetUsersQuery,
   useEnableUserMutation,
   useDisableUserMutation,
+  useDeleteUserMutation,
 } from "../../services/api/userApi";
+
+const phoneDigits = (phone) => (phone || "").replace(/\D/g, "");
+
+const SORT_OPTIONS = [
+  { key: "name", label: "Name (A–Z)" },
+  { key: "phone", label: "Phone Number" },
+  { key: "role", label: "Role" },
+];
 
 export default function AdminUsersPage() {
   const {
@@ -31,10 +40,42 @@ export default function AdminUsersPage() {
   } = useGetUsersQuery();
   const [enableUser] = useEnableUserMutation();
   const [disableUser] = useDisableUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
+
+  // Prevents an admin from accidentally deleting their own logged-in account
+  const currentUserEmail = useSelector((state) => state?.auth?.user?.email);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL"); // 'ALL' | 'ACTIVE' | 'DISABLED'
   const [busyUuid, setBusyUuid] = useState(null);
+
+  // sortKey: null | 'name' | 'phone' | 'role'
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef(null);
+
+  // Close the dropdown when clicking anywhere outside it
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setSortMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectSort = (key) => {
+    if (sortKey === key) {
+      // picking the same option again flips direction
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+    setSortMenuOpen(false);
+  };
 
   const handleToggleStatus = async (user) => {
     setBusyUuid(user.uuid);
@@ -53,23 +94,84 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleDelete = async (user) => {
+    if (user.email && user.email === currentUserEmail) {
+      toast.error("You can't delete your own account while logged in.");
+      return;
+    }
+
+    const displayName = user.username || user.email || "this user";
+    const confirmed = window.confirm(
+      `Delete ${displayName}? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setBusyUuid(user.uuid);
+    try {
+      await deleteUser(user.uuid).unwrap();
+      toast.success(`${displayName} was deleted`);
+    } catch (err) {
+      toast.error(err?.data?.message || "Delete failed");
+    } finally {
+      setBusyUuid(null);
+    }
+  };
+
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => !u.disabled && !u.isDeleted).length;
   const disabledUsers = users.filter((u) => u.disabled && !u.isDeleted).length;
 
-  const filteredUsers = users.filter((user) => {
-    const fullName =
-      `${user.firstName || ""} ${user.lastName || ""}`.toLowerCase();
-    const email = (user.email || "").toLowerCase();
-    const query = searchTerm.toLowerCase();
+  const filteredUsers = useMemo(() => {
+    let result = users.filter((user) => {
+      const fullName =
+        `${user.firstName || ""} ${user.lastName || ""}`.toLowerCase();
+      const email = (user.email || "").toLowerCase();
+      const query = searchTerm.toLowerCase();
 
-    const matchesSearch = fullName.includes(query) || email.includes(query);
-    if (!matchesSearch) return false;
+      const matchesSearch = fullName.includes(query) || email.includes(query);
+      if (!matchesSearch) return false;
 
-    if (filterStatus === "ACTIVE") return !user.disabled;
-    if (filterStatus === "DISABLED") return user.disabled;
-    return true;
-  });
+      if (filterStatus === "ACTIVE") return !user.disabled;
+      if (filterStatus === "DISABLED") return user.disabled;
+      return true;
+    });
+
+    if (sortKey === "name") {
+      result = [...result].sort((a, b) => {
+        const nameA = `${a.firstName || ""} ${a.lastName || ""}`
+          .trim()
+          .toLowerCase();
+        const nameB = `${b.firstName || ""} ${b.lastName || ""}`
+          .trim()
+          .toLowerCase();
+        const cmp = nameA.localeCompare(nameB);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    } else if (sortKey === "phone") {
+      result = [...result].sort((a, b) => {
+        const phoneA = phoneDigits(a.phone);
+        const phoneB = phoneDigits(b.phone);
+        const numA = Number(phoneA);
+        const numB = Number(phoneB);
+        const cmp =
+          phoneA && phoneB ? numA - numB : phoneA.localeCompare(phoneB);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    } else if (sortKey === "role") {
+      result = [...result].sort((a, b) => {
+        const roleA = (a.role || "").toLowerCase();
+        const roleB = (b.role || "").toLowerCase();
+        const cmp = roleA.localeCompare(roleB);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+
+    return result;
+  }, [users, searchTerm, filterStatus, sortKey, sortDir]);
+
+  const activeSortLabel = sortKey
+    ? SORT_OPTIONS.find((o) => o.key === sortKey)?.label
+    : "Sort";
 
   if (isLoading) {
     return (
@@ -155,7 +257,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Search + filter */}
+      {/* Search + filter + sort */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -168,24 +270,90 @@ export default function AdminUsersPage() {
           />
         </div>
 
-        <div className="flex items-center gap-1.5 p-1 bg-neutral-100 rounded-xl border border-neutral-200 w-full sm:w-auto">
-          {[
-            { label: "All Users", key: "ALL" },
-            { label: "Active", key: "ACTIVE" },
-            { label: "Disabled", key: "DISABLED" },
-          ].map((tab) => (
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Status filter tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-neutral-100 rounded-xl border border-neutral-200 w-full sm:w-auto">
+            {[
+              { label: "All Users", key: "ALL" },
+              { label: "Active", key: "ACTIVE" },
+              { label: "Disabled", key: "DISABLED" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setFilterStatus(tab.key)}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  filterStatus === tab.key
+                    ? "bg-white text-neutral-900 shadow-sm"
+                    : "text-neutral-500 hover:text-neutral-800"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort dropdown */}
+          <div className="relative" ref={sortMenuRef}>
             <button
-              key={tab.key}
-              onClick={() => setFilterStatus(tab.key)}
-              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                filterStatus === tab.key
-                  ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-500 hover:text-neutral-800"
+              onClick={() => setSortMenuOpen((prev) => !prev)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                sortKey
+                  ? "border-red-500 text-red-600 bg-red-50"
+                  : "border-neutral-200 text-neutral-600 bg-white hover:bg-neutral-50"
               }`}
             >
-              {tab.label}
+              {sortKey ? (
+                sortDir === "asc" ? (
+                  <ArrowUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ArrowDown className="w-3.5 h-3.5" />
+                )
+              ) : (
+                <ArrowUpDown className="w-3.5 h-3.5" />
+              )}
+              <span>{activeSortLabel}</span>
             </button>
-          ))}
+
+            {sortMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-neutral-200 shadow-lg z-20 overflow-hidden">
+                {sortKey && (
+                  <button
+                    onClick={() => {
+                      setSortKey(null);
+                      setSortDir("asc");
+                      setSortMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-neutral-500 hover:bg-neutral-50 border-b border-neutral-100"
+                  >
+                    Clear sort
+                  </button>
+                )}
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleSelectSort(opt.key)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold transition-colors ${
+                      sortKey === opt.key
+                        ? "text-red-600 bg-red-50"
+                        : "text-neutral-700 hover:bg-neutral-50"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {sortKey === opt.key && (
+                      <span className="flex items-center gap-1">
+                        {sortDir === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        )}
+                        <Check className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -256,23 +424,34 @@ export default function AdminUsersPage() {
                     </td>
 
                     <td className="p-4 pr-6 text-right">
-                      <button
-                        disabled={isBusy}
-                        onClick={() => handleToggleStatus(user)}
-                        className={`inline-flex items-center justify-center min-w-[82px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          user.disabled
-                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/30"
-                            : "bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/30"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {isBusy ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : user.disabled ? (
-                          "Enable"
-                        ) : (
-                          "Disable"
-                        )}
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          disabled={isBusy}
+                          onClick={() => handleToggleStatus(user)}
+                          className={`inline-flex items-center justify-center min-w-[82px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            user.disabled
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/30"
+                              : "bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/30"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isBusy ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : user.disabled ? (
+                            "Enable"
+                          ) : (
+                            "Disable"
+                          )}
+                        </button>
+
+                        <button
+                          disabled={isBusy}
+                          onClick={() => handleDelete(user)}
+                          title="Delete user"
+                          className="inline-flex items-center justify-center p-1.5 rounded-xl text-xs font-bold bg-neutral-100 text-neutral-500 hover:bg-red-50 hover:text-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
