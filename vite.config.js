@@ -10,15 +10,4 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
   ],
-  server: {
-    port: 5174,
-    proxy: {
-      "/cinema-api": {
-        target: "https://cinema-booking-api.eunglyzhia.com",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/cinema-api/, ""),
-      },
-    },
-  },
 });

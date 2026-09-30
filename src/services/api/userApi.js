@@ -1,13 +1,3 @@
-// src/services/api/userApi.js
-//
-// Injects user-management endpoints into the EXISTING baseApi instance.
-//
-// IMPORTANT: baseApi's cinemaBaseQuery already has baseUrl set to
-// ".../api/v1", so endpoint paths here must NOT repeat "/api/v1" —
-// just "/users", "/users/{uuid}", etc. The isCinemaApiEndpoint() routing
-// function in baseApi.js matches on the "/users" prefix to send these
-// requests to your Cinema API instead of TMDB.
-
 import { baseApi } from "./baseApi";
 
 export const userApi = baseApi.injectEndpoints({

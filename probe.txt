@@ -1,0 +1,6 @@
+﻿POST seats/bulk:
+
+POST seats (rows):
+
+POST seats/bulk alt:
+
