@@ -1,4 +1,8 @@
+import { useState, useEffect } from "react";
 import { X, Loader2, AlertTriangle, RefreshCw, Clock } from "lucide-react";
+
+// Backend ShowtimeStatus enum — the only values the API accepts.
+const SHOWTIME_STATUSES = ["DRAFT", "OPEN", "CLOSED", "CANCELLED", "COMPLETED"];
 
 const formatDateTime = (iso) => {
   if (!iso) return "—";
@@ -11,22 +15,26 @@ const formatDateTime = (iso) => {
 };
 
 const statusBadgeClass = (status) =>
-  status === "OPEN"
-    ? "bg-emerald-100 text-emerald-600"
-    : status === "DRAFT"
-      ? "bg-neutral-200 text-neutral-600"
-      : status === "COMPLETED"
-        ? "bg-sky-100 text-sky-600"
-        : "bg-red-100 text-red-600";
+  status === "DRAFT"
+    ? "bg-neutral-200 text-neutral-600"
+    : status === "OPEN"
+      ? "bg-emerald-100 text-emerald-600"
+      : status === "CLOSED"
+        ? "bg-amber-100 text-amber-700"
+        : status === "CANCELLED"
+          ? "bg-red-100 text-red-600"
+          : "bg-sky-100 text-sky-600";
 
 const statusDotClass = (status) =>
-  status === "OPEN"
-    ? "bg-emerald-500 animate-pulse"
-    : status === "DRAFT"
-      ? "bg-neutral-500"
-      : status === "COMPLETED"
-        ? "bg-sky-500"
-        : "bg-red-600";
+  status === "DRAFT"
+    ? "bg-neutral-500"
+    : status === "OPEN"
+      ? "bg-emerald-500 animate-pulse"
+      : status === "CLOSED"
+        ? "bg-amber-500"
+        : status === "CANCELLED"
+          ? "bg-red-600"
+          : "bg-sky-500";
 
 export default function ShowtimeDetailsModal({
   open,
@@ -34,9 +42,22 @@ export default function ShowtimeDetailsModal({
   isLoading,
   isError,
   error,
+  isUpdatingStatus,
+  onUpdateStatus,
   onRetry,
   onClose,
 }) {
+  // Draft status being edited for this showtime (only applies on Save).
+  const [draftStatus, setDraftStatus] = useState("DRAFT");
+  useEffect(() => {
+    if (open) {
+      const current = showtime?.status;
+      setDraftStatus(
+        current && SHOWTIME_STATUSES.includes(current) ? current : "DRAFT",
+      );
+    }
+  }, [open, showtime?.uuid, showtime?.status]);
+
   if (!open) return null;
 
   const entry = (label, value, kind) => (
@@ -152,6 +173,45 @@ export default function ShowtimeDetailsModal({
                 {showtime.status || "—"}
               </span>
             </div>
+
+            <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/70 px-3.5 py-2.5 bg-white">
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 whitespace-nowrap">
+                Set Status
+              </span>
+              <select
+                value={draftStatus}
+                onChange={(event) => setDraftStatus(event.target.value)}
+                className="flex-1 min-w-0 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-800 outline-none focus:border-[#b90101] cursor-pointer"
+              >
+                {SHOWTIME_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateStatus({ uuid: showtime.uuid, status: draftStatus })
+                }
+                disabled={
+                  isUpdatingStatus ||
+                  draftStatus === (showtime?.status || "DRAFT") ||
+                  !showtime?.uuid
+                }
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#b90101] hover:brightness-110 text-white text-xs font-black whitespace-nowrap transition active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+              >
+                {isUpdatingStatus ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : null}
+                {isUpdatingStatus ? "Saving…" : "Save"}
+              </button>
+            </div>
+            <p className="text-[10px] font-semibold text-neutral-400">
+              Status changes need the backend endpoint PATCH
+              /showtimes/{"{uuid}"}/status — the same pattern as halls,
+              movies and seats.
+            </p>
 
             <div className="grid grid-cols-2 gap-3">
               {entry("Movie", showtime.movieTitle)}

@@ -1,4 +1,4 @@
-import { Film, Plus, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Film, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import MovieLibraryRow from "./MovieLibraryRow";
 
 export default function MovieLibraryTable({
@@ -12,7 +12,6 @@ export default function MovieLibraryTable({
   onDelete,
   onQuickImport,
   onCustomizeSchedule,
-  onAddCustom,
   onRestore100,
   totalPages,
   currentPage,
@@ -133,14 +132,6 @@ export default function MovieLibraryTable({
 
             {activePanelId === "MANAGED" && (
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={onAddCustom}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#b90101] text-white font-extrabold text-xs shadow-md transition hover:brightness-110 active:scale-95 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Custom Movie</span>
-                </button>
-
                 <button
                   onClick={onRestore100}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-neutral-300 hover:border-[#b90101] text-neutral-700 hover:text-[#b90101] font-bold text-xs shadow-xs transition cursor-pointer"

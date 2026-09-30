@@ -22,6 +22,7 @@ import { baseApi } from "./baseApi";
  * @property {string} showDate  // "YYYY-MM-DD"
  * @property {string} showTime  // time-local, e.g. "14:30"
  * @property {number} basePrice // >= 0.01
+ * @property {"DRAFT"|"OPEN"|"CLOSED"|"CANCELLED"|"COMPLETED"} status // defaults to "DRAFT"
  */
 
 /**

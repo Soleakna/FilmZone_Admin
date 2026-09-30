@@ -7,6 +7,9 @@ const inputClass =
 const labelClass =
   "block text-xs font-black uppercase tracking-wider text-neutral-600 mb-1.5";
 
+// Backend ShowtimeStatus enum — the only values the API accepts.
+const SHOWTIME_STATUSES = ["DRAFT", "OPEN", "CLOSED", "CANCELLED", "COMPLETED"];
+
 export default function CreateShowtimeModal({
   open,
   onClose,
@@ -21,11 +24,12 @@ export default function CreateShowtimeModal({
     showDate: "",
     showTime: "",
     basePrice: "",
+    status: "DRAFT",
   });
 
   useEffect(() => {
     if (open) {
-      setForm({ movieUuid: "", hallUuid: "", showDate: "", showTime: "", basePrice: "" });
+      setForm({ movieUuid: "", hallUuid: "", showDate: "", showTime: "", basePrice: "", status: "DRAFT" });
     }
   }, [open]);
 
@@ -46,6 +50,7 @@ export default function CreateShowtimeModal({
       showDate: form.showDate,
       showTime: form.showTime,
       basePrice: Number(form.basePrice),
+      status: form.status,
     });
     if (ok) onClose();
   };
@@ -137,6 +142,25 @@ export default function CreateShowtimeModal({
             )}
           </div>
 
+          {/* Status */}
+          <div>
+            <label className={labelClass}>Status</label>
+            <div className="relative">
+              <select
+                value={form.status}
+                onChange={setField("status")}
+                className={`${inputClass} appearance-none pr-9 cursor-pointer`}
+              >
+                {SHOWTIME_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <span className="w-2 h-2 rounded-full bg-neutral-300 pointer-events-none absolute right-9 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
           {/* Date + Time + Price */}
           {/* Date + Time + Price */}
           <div className="grid grid-cols-3 gap-3">
@@ -177,7 +201,8 @@ export default function CreateShowtimeModal({
 
           <p className="text-[11px] font-semibold text-neutral-400">
             The backend computes start/end times from the date + time and the
-            movie&apos;s runtime. Minimum base price is 0.01.
+            movie&apos;s runtime. Minimum base price is 0.01. New showtimes
+            default to DRAFT until you publish them.
           </p>
 
           <button

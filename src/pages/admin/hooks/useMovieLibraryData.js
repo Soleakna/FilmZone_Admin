@@ -436,11 +436,6 @@ export function useMovieLibraryData() {
   };
 
   // Action Handlers
-  const handleOpenAddCustom = () => {
-    setEditingMovie(null);
-    setIsModalOpen(true);
-  };
-
   const handleOpenEdit = (movie) => {
     setEditingMovie(movie);
     setIsModalOpen(true);
@@ -579,7 +574,6 @@ export function useMovieLibraryData() {
     isFetching,
     handleSelectPanel,
     formatGenres,
-    handleOpenAddCustom,
     handleOpenEdit,
     handleDelete,
     handleRestore100Movies,

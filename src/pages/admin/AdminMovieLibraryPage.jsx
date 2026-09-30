@@ -38,7 +38,6 @@ export default function AdminMovieLibraryPage() {
     isFetching,
     handleSelectPanel,
     formatGenres,
-    handleOpenAddCustom,
     handleOpenEdit,
     handleDelete,
     handleRestore100Movies,
@@ -58,7 +57,6 @@ export default function AdminMovieLibraryPage() {
           managedMoviesCount={managedMovies.length}
           onRestore100={handleRestore100Movies}
           onClearAll={handleClearAll}
-          onAddCustom={handleOpenAddCustom}
         />
       )}
 
@@ -111,7 +109,6 @@ export default function AdminMovieLibraryPage() {
             onDelete={handleDelete}
             onQuickImport={handleQuickImportTmdb}
             onCustomizeSchedule={handleCustomizeTmdbSchedule}
-            onAddCustom={handleOpenAddCustom}
             onRestore100={handleRestore100Movies}
             totalPages={totalPages}
             currentPage={currentPage}

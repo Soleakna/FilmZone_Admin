@@ -37,7 +37,7 @@ export default function MovieLibraryFilters({
               {activePanel.label}
             </h2>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-neutral-100 text-neutral-600 border border-neutral-200">
-              {activePanel.endpoint}
+              {/* {activePanel.endpoint} */}
             </span>
           </div>
           <p className="text-xs text-neutral-500 font-medium">

@@ -27,22 +27,26 @@ const formatDateTime = (iso) => {
 };
 
 const statusBadgeClass = (status) =>
-  status === "OPEN"
-    ? "bg-emerald-100 text-emerald-600"
-    : status === "DRAFT"
-      ? "bg-neutral-200 text-neutral-600"
-      : status === "COMPLETED"
-        ? "bg-sky-100 text-sky-600"
-        : "bg-red-100 text-red-600";
+  status === "DRAFT"
+    ? "bg-neutral-200 text-neutral-600"
+    : status === "OPEN"
+      ? "bg-emerald-100 text-emerald-600"
+      : status === "CLOSED"
+        ? "bg-amber-100 text-amber-700"
+        : status === "CANCELLED"
+          ? "bg-red-100 text-red-600"
+          : "bg-sky-100 text-sky-600";
 
 const statusDotClass = (status) =>
-  status === "OPEN"
-    ? "bg-emerald-500 animate-pulse"
-    : status === "DRAFT"
-      ? "bg-neutral-500"
-      : status === "COMPLETED"
-        ? "bg-sky-500"
-        : "bg-red-600";
+  status === "DRAFT"
+    ? "bg-neutral-500"
+    : status === "OPEN"
+      ? "bg-emerald-500 animate-pulse"
+      : status === "CLOSED"
+        ? "bg-amber-500"
+        : status === "CANCELLED"
+          ? "bg-red-600"
+          : "bg-sky-500";
 
 export default function ShowtimesManager() {
   const {
@@ -70,6 +74,8 @@ export default function ShowtimesManager() {
     closeSeats,
     isCreating,
     handleCreateShowtime,
+    isUpdatingStatus,
+    handleUpdateShowtimeStatus,
   } = useShowtimesData();
 
   // Halls for the create form — the API returns every hall (including backend
@@ -95,7 +101,7 @@ export default function ShowtimesManager() {
             <div className="absolute bottom-0 left-0 w-24 h-1 bg-[#b90101] rounded-full" />
           </div>
           <p className="text-xs font-semibold text-neutral-500 mt-2 max-w-xl">
-            Showtimes stored in the Cinema Booking API — schedule a movie in a
+            Showtimes in the Cinema Booking, schedule a movie in a
             hall, view details, and inspect seat availability.
           </p>
         </div>
@@ -262,6 +268,8 @@ export default function ShowtimesManager() {
         isLoading={isDetailsLoading}
         isError={isDetailsError}
         error={detailsError}
+        isUpdatingStatus={isUpdatingStatus}
+        onUpdateStatus={handleUpdateShowtimeStatus}
         onRetry={refetchDetails}
         onClose={closeDetails}
       />

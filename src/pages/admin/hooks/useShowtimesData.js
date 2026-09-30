@@ -5,6 +5,7 @@ import {
   useCreateShowtimeMutation,
   useGetShowtimeByUuidQuery,
   useGetShowtimeSeatsQuery,
+  useUpdateShowtimeStatusMutation,
 } from "../../../services/api/showtimeApi";
 
 const extractErrorMessage = (err) => {
@@ -70,8 +71,13 @@ export function useShowtimesData() {
   const [createShowtime, { isLoading: isCreating }] =
     useCreateShowtimeMutation();
 
+  // PATCH /showtimes/{uuid}/status — change a showtime's status (DRAFT, OPEN,
+  // CLOSED, CANCELLED, COMPLETED). Uses the exact backend enum values.
+  const [updateShowtimeStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateShowtimeStatusMutation();
+
   // Validate + POST /showtimes. Input is the request-shaped payload:
-  // { movieUuid, hallUuid, showDate, showTime, basePrice }.
+  // { movieUuid, hallUuid, showDate, showTime, basePrice, status }.
   const handleCreateShowtime = async (data) => {
     if (!data?.movieUuid) {
       toast.error("Please select a movie.");
@@ -102,11 +108,43 @@ export function useShowtimesData() {
         showDate: data.showDate,
         showTime: data.showTime,
         basePrice,
+        // Backend ShowtimeStatus — DRAFT is the default for new showtimes.
+        status: data.status || "DRAFT",
       }).unwrap();
       toast.success("Showtime created!");
       return true;
     } catch (err) {
       console.error("Create showtime error:", err);
+      toast.error(extractErrorMessage(err));
+      return false;
+    }
+  };
+
+  // PATCH the exact backend value ("OPEN", not "open") via the existing
+  // /showtimes/{uuid}/status endpoint, then refresh the list + details.
+  const handleUpdateShowtimeStatus = async ({ uuid, status }) => {
+    if (!uuid || !status) return false;
+    try {
+      await updateShowtimeStatus({ uuid, status }).unwrap();
+      toast.success(`Showtime status updated to ${status}.`);
+      refetchShowtimes();
+      if (selectedShowtimeUuid && selectedShowtimeUuid === uuid) {
+        refetchDetails();
+      }
+      return true;
+    } catch (err) {
+      console.error("Update showtime status error:", err);
+      // The deployed Cinema Booking API does not expose the showtime status
+      // endpoint yet (v3/api-docs lists only GET/POST /showtimes, GET
+      // /showtimes/{uuid} and GET /showtimes/{uuid}/seats). A 404/405 means
+      // the route is missing — mirroring PATCH /halls/{uuid}/status would
+      // enable this UI.
+      if (err?.status === 404 || err?.status === 405) {
+        toast.error(
+          "Cannot change showtime status: the Cinema Booking API does not expose PATCH /showtimes/{uuid}/status yet. Add that endpoint on the backend (mirror PATCH /halls/{uuid}/status) and retry.",
+        );
+        return false;
+      }
       toast.error(extractErrorMessage(err));
       return false;
     }
@@ -141,5 +179,8 @@ export function useShowtimesData() {
     // create
     isCreating,
     handleCreateShowtime,
+    // status
+    isUpdatingStatus,
+    handleUpdateShowtimeStatus,
   };
 }
