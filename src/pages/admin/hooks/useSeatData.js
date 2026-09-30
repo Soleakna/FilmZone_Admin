@@ -8,6 +8,9 @@ import {
   useUpdateSeatStatusMutation,
 } from "../../../services/api/seatApi";
 import {
+  buildSeatLabel,
+  findConflictingSeatLabels,
+  generateSeatLabels,
   getBulkSeatCountError,
   getBulkStartSeatNumberError,
   getCoupleSeatNumberError,
@@ -64,27 +67,12 @@ const isDuplicateSeatError = (err) => {
   );
 };
 
-// Best-effort: pull the seat label(s) (e.g. "A1") out of a backend error
-// message. Returns an empty array when no label can be found in the message.
-const extractSeatLabels = (err) => {
-  const data = err?.data;
-  const message = String(
-    (typeof data === "string" ? data : "") ||
-      data?.message ||
-      data?.error ||
-      data?.detail ||
-      err?.error ||
-      "",
-  );
-  const matches = message.match(/[A-Za-z]{1,4}\s?\d{1,4}/g) || [];
-  return [
-    ...new Set(
-      matches
-        .map((m) => m.replace(/\s/g, "").toUpperCase())
-        .filter((m) => /^[A-Z]{1,4}\d{1,4}$/.test(m)),
-    ),
-  ];
-};
+// Duplicate-seat rejections from the backend are shown inline in the form
+// (not Toastify). IMPORTANT: the labels displayed are ALWAYS derived from the
+// labels this request actually generates and verified against the real seats
+// in the database — labels scraped from the backend error message are never
+// shown, because the backend can report a label that is not part of the
+// request (e.g. a phantom "A1" while creating A5/A6).
 
 // --- Seat-number validation guards (defense-in-depth) ---
 // Every row has exactly SEATS_PER_ROW (12) seats, so the only valid seat
@@ -165,6 +153,13 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
   const getSeatLabel = (seat) =>
     seat?.seatLabel || `${seat?.rowLabel ?? ""}${seat?.seatNumber ?? ""}`.trim();
 
+  // Re-syncs the seats list so duplicate checks run against the freshest
+  // backend data, never against labels scraped from an error message.
+  const refreshSeatList = async () => {
+    const fresh = await refetch().catch(() => null);
+    return Array.isArray(fresh?.data) ? fresh.data : seats;
+  };
+
   const handleCreateSeat = async (seatData) => {
     // Never send an invalid seat number to the API — a seat in any row must
     // be a whole number between 1 and 12 (e.g. only A1–A12 for row A).
@@ -184,12 +179,19 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
       console.error("Create seat error:", err);
 
       // Duplicate-seat errors are surfaced inline in the form (not Toastify).
+      // The reported label is always the exact label this request generates —
+      // never a label scraped from the backend message, which can reference a
+      // seat that is not part of this request (e.g. a phantom "A1").
       if (isDuplicateSeatError(err)) {
-        const fromMessage = extractSeatLabels(err);
-        const attempted = `${seatData.rowLabel || ""}${seatData.seatNumber || ""}`.trim();
+        const attempted =
+          buildSeatLabel(seatData.rowLabel, seatData.seatNumber) || "";
+        const freshSeats = await refreshSeatList();
+        const conflicting = attempted
+          ? findConflictingSeatLabels([attempted], freshSeats, getSeatLabel)
+          : [];
         return {
           created: false,
-          duplicateSeatLabel: fromMessage[0] || attempted || "",
+          duplicateSeatLabel: conflicting[0] || attempted || "",
         };
       }
 
@@ -219,16 +221,26 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
       console.error("Create couple seat error:", err);
 
       // Duplicate-seat errors are surfaced inline in the form (not Toastify).
+      // Only the labels this request actually generates can ever be reported.
+      // The pair always uses {row}{first} and {row}{first + 1} so the labels
+      // are derived from the form's FIRST seat number, and they are verified
+      // against the freshest seat list — a label scraped from the backend
+      // message (e.g. a phantom "A1" when requesting A5/A6) is never shown.
       if (isDuplicateSeatError(err)) {
         const first = Number(seatData.firstSeatNumber) || 1;
         const attempted = [
-          `${seatData.rowLabel || ""}${first}`.trim(),
-          `${seatData.rowLabel || ""}${first + 1}`.trim(),
+          buildSeatLabel(seatData.rowLabel, first),
+          buildSeatLabel(seatData.rowLabel, first + 1),
         ].filter(Boolean);
-        const fromMessage = extractSeatLabels(err);
+        const freshSeats = await refreshSeatList();
+        const conflicting = findConflictingSeatLabels(
+          attempted,
+          freshSeats,
+          getSeatLabel,
+        );
         return {
           created: false,
-          duplicateSeatLabels: fromMessage.length ? fromMessage : attempted,
+          duplicateSeatLabels: conflicting.length ? conflicting : attempted,
         };
       }
 
@@ -254,18 +266,29 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
       console.error("Bulk create seats error:", err);
 
       // Duplicate-seat errors are surfaced inline in the form (not Toastify).
+      // Only the labels this request actually generates can ever be reported:
+      // {row}{start + i} for i in 0..count−1 of every row, verified against
+      // the freshest seat list. Labels scraped from the backend message (e.g.
+      // a phantom "A1" when requesting A5/A6) are never shown.
       if (isDuplicateSeatError(err)) {
-        const attempted = rows.flatMap((row) => {
-          const start = Number(row.startSeatNumber) || 1;
-          const count = Math.max(Number(row.numberOfSeats) || 1, 1);
-          return Array.from({ length: count }, (_, i) =>
-            `${row.rowLabel || ""}${start + i}`.trim(),
-          ).filter(Boolean);
-        });
-        const fromMessage = extractSeatLabels(err);
+        const attempted = rows.flatMap((row) =>
+          generateSeatLabels(
+            row.rowLabel,
+            row.startSeatNumber,
+            row.numberOfSeats,
+          ),
+        );
+        const freshSeats = await refreshSeatList();
+        const conflicting = findConflictingSeatLabels(
+          attempted,
+          freshSeats,
+          getSeatLabel,
+        );
         return {
           created: false,
-          duplicateSeatLabels: fromMessage.length ? fromMessage : attempted,
+          duplicateSeatLabels: conflicting.length
+            ? conflicting
+            : [...new Set(attempted)],
         };
       }
 

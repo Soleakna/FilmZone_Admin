@@ -18,10 +18,14 @@ import { Link, useParams } from "react-router";
 import { useGetHallsQuery } from "../../services/api/hallApi";
 import { useSeatData } from "./hooks/useSeatData";
 import {
+  buildSeatLabel,
+  findConflictingSeatLabels,
+  generateSeatLabels,
   getBulkSeatCountError,
   getBulkStartSeatNumberError,
   getCoupleSeatNumberError,
   getSeatNumberError,
+  normalizeSeatLabel,
   SEATS_PER_ROW,
 } from "../../utils/seatValidation";
 
@@ -163,11 +167,11 @@ export default function AdminSeatsPage() {
     }
 
     // A seat label that already exists in this hall is blocked up front — the
-    // matching inline error is already shown under the Seat Number field.
+    // matching inline error under the Seat Number field names the conflict.
     const label = buildSeatLabel(form.rowLabel, form.seatNumber);
     const freshSeats = await refetchSeatsForCheck();
     if (label && isTakenInList(label, freshSeats)) {
-      setNormalSeatErrors([]);
+      setNormalSeatErrors([label]);
       return;
     }
 
@@ -247,10 +251,12 @@ export default function AdminSeatsPage() {
       return;
     }
 
-    // Block when any generated label already exists — the per-row inline
-    // errors already identify exactly which labels conflict.
+    // Block when any generated label already exists — the inline errors name
+    // exactly which of the generated labels conflict.
     if (bulkDuplicateByRow.some((labels) => labels.length > 0)) {
-      setBulkSeatErrors([]);
+      setBulkSeatErrors([
+        ...new Set(bulkDuplicateByRow.flatMap((labels) => labels)),
+      ]);
       return;
     }
 
@@ -263,11 +269,11 @@ export default function AdminSeatsPage() {
     // Re-sync the seats list so the duplicate check below is authoritative -
     // a stale cached list can otherwise allow/block creates incorrectly.
     const freshSeats = await refetchSeatsForCheck();
-    if (
-      getTakenLabels(bulkRows, freshSeats).some(
-        (labels) => labels.length > 0,
-      )
-    ) {
+    const freshDuplicates = getTakenLabels(bulkRows, freshSeats);
+    if (freshDuplicates.some((labels) => labels.length > 0)) {
+      setBulkSeatErrors([
+        ...new Set(freshDuplicates.flatMap((labels) => labels)),
+      ]);
       return;
     }
 
@@ -301,15 +307,15 @@ export default function AdminSeatsPage() {
       return;
     }
 
-    // Block if either of the two generated labels already exists — the inline
-    // errors under First Seat Number name the conflicting label(s).
+    // Block when either generated label already exists — the inline errors
+    // under First Seat Number name exactly which label(s) conflict:
+    // e.g. creating A5 + A6 checks A5 and A6, never any other seat.
     const freshSeats = await refetchSeatsForCheck();
-    if (
-      [coupleFirstLabel, coupleSecondLabel].some((lbl) =>
-        isTakenInList(lbl, freshSeats),
-      )
-    ) {
-      setCoupleSeatErrors([]);
+    const takenCoupleLabels = [coupleFirstLabel, coupleSecondLabel].filter(
+      (lbl) => lbl && isTakenInList(lbl, freshSeats),
+    );
+    if (takenCoupleLabels.length > 0) {
+      setCoupleSeatErrors(takenCoupleLabels);
       return;
     }
 
@@ -350,14 +356,8 @@ export default function AdminSeatsPage() {
   };
 
   // --- Inline duplicate-seat detection (reuses the already-loaded seats list) ---
-  // Builds the exact label the backend uses: row letter + number (e.g. "A1").
-  const buildSeatLabel = (rowLabel, seatNumber) => {
-    const row = (rowLabel || "").trim().toUpperCase();
-    const num = Number(seatNumber);
-    if (!row || !Number.isInteger(num) || num < 1) return "";
-    return `${row}${num}`;
-  };
-  const normalizeSeatLabel = (label) => (label || "").trim().toLowerCase();
+  // buildSeatLabel / normalizeSeatLabel are imported from utils/seatValidation
+  // so every create path builds and compares labels identically.
   const isTakenInList = (label, seatList) =>
     label &&
     (seatList || []).some(
@@ -376,16 +376,13 @@ export default function AdminSeatsPage() {
 
   // Checks every label a set of bulk rows would generate against a seat list.
   const getTakenLabels = (rowsData, seatList) =>
-    rowsData.map((row) => {
-      const start = Number(row.startSeatNumber) || 1;
-      const count = Math.max(Number(row.numberOfSeats) || 0, 0);
-      const taken = [];
-      for (let i = 0; i < count; i += 1) {
-        const lbl = buildSeatLabel(row.rowLabel, start + i);
-        if (lbl && isTakenInList(lbl, seatList)) taken.push(lbl);
-      }
-      return [...new Set(taken)];
-    });
+    rowsData.map((row) =>
+      findConflictingSeatLabels(
+        generateSeatLabels(row.rowLabel, row.startSeatNumber, row.numberOfSeats),
+        seatList,
+        getSeatLabel,
+      ),
+    );
 
   // Normal seat — the exact label the form would create (e.g. "A1").
   const normalSeatLabel = buildSeatLabel(form.rowLabel, form.seatNumber);
@@ -406,8 +403,10 @@ export default function AdminSeatsPage() {
     // an empty/cleared number field must not create a phantom "A1" error.
     coupleFirstLabel ? Number(coupleForm.firstSeatNumber) + 1 : 0,
   );
-  const coupleLiveLabels = [coupleFirstLabel, coupleSecondLabel].filter(
-    (lbl) => lbl && isLabelTaken(lbl),
+  const coupleLiveLabels = findConflictingSeatLabels(
+    [coupleFirstLabel, coupleSecondLabel],
+    seats,
+    getSeatLabel,
   );
   const coupleErrorLabels = [
     ...new Set([...coupleLiveLabels, ...coupleSeatErrors].filter(Boolean)),

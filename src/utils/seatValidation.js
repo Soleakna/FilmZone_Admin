@@ -67,3 +67,58 @@ export const getBulkSeatCountError = (value) => {
   }
   return "";
 };
+
+// Builds the exact seat label the backend stores: row letter + number, e.g.
+// buildSeatLabel("A", 5) → "A5". Returns "" when the input can't form a label.
+// This is the single source of truth for label generation so every "create
+// seat" path (normal, couple, bulk) produces identical labels and validates
+// the SAME labels it would actually create.
+export const buildSeatLabel = (rowLabel, seatNumber) => {
+  const row = (rowLabel || "").trim().toUpperCase();
+  const num = Number(seatNumber);
+  if (!row || !Number.isInteger(num) || num < 1) return "";
+  return `${row}${num}`;
+};
+
+// Every label a range generates: {row}{start} … {row}{start + count − 1}.
+// e.g. generateSeatLabels("A", 5, 2) → ["A5", "A6"].
+// Returns [] when either argument is missing/invalid, so a caller can never
+// accidentally validate against an empty or default (e.g. "1") label.
+export const generateSeatLabels = (rowLabel, startSeatNumber, count) => {
+  const start = Number(startSeatNumber);
+  const amount = Number(count);
+  if (!Number.isInteger(start) || start < 1) return [];
+  if (!Number.isInteger(amount) || amount < 1) return [];
+  const labels = [];
+  for (let i = 0; i < amount; i += 1) {
+    const lbl = buildSeatLabel(rowLabel, start + i);
+    if (lbl) labels.push(lbl);
+  }
+  return labels;
+};
+
+// Case-insensitive comparison target for seat labels ("A5" matches "a5").
+export const normalizeSeatLabel = (label) => (label || "").trim().toLowerCase();
+
+// Returns the labels from `proposedLabels` that already exist in `seatList`.
+// A seat's label is derived with `toSeatLabel` (defaults to seatLabel or
+// rowLabel + seatNumber). ONLY the proposed labels themselves are ever
+// reported — a seat that is not part of the labels being created (e.g. a
+// phantom "A1" while creating A5/A6) can never appear in the result.
+export const findConflictingSeatLabels = (
+  proposedLabels,
+  seatList,
+  toSeatLabel = (seat) =>
+    seat?.seatLabel || `${seat?.rowLabel ?? ""}${seat?.seatNumber ?? ""}`.trim(),
+) =>
+  [
+    ...new Set(
+      (Array.isArray(proposedLabels) ? proposedLabels : []).filter((label) =>
+        label &&
+        (Array.isArray(seatList) ? seatList : []).some(
+          (seat) =>
+            normalizeSeatLabel(toSeatLabel(seat)) === normalizeSeatLabel(label),
+        ),
+      ),
+    ),
+  ];
