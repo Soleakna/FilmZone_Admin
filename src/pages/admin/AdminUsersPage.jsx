@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
   Users,
@@ -13,18 +12,17 @@ import {
   ArrowUp,
   ArrowDown,
   Check,
-  Trash2,
 } from "lucide-react";
 import {
   useGetUsersQuery,
   useEnableUserMutation,
   useDisableUserMutation,
-  useDeleteUserMutation,
 } from "../../services/api/userApi";
 
 const phoneDigits = (phone) => (phone || "").replace(/\D/g, "");
 
 const SORT_OPTIONS = [
+  { key: "points", label: "Points: High to Low" },
   { key: "name", label: "Name (A–Z)" },
   { key: "phone", label: "Phone Number" },
   { key: "role", label: "Role" },
@@ -40,16 +38,12 @@ export default function AdminUsersPage() {
   } = useGetUsersQuery();
   const [enableUser] = useEnableUserMutation();
   const [disableUser] = useDisableUserMutation();
-  const [deleteUser] = useDeleteUserMutation();
-
-  // Prevents an admin from accidentally deleting their own logged-in account
-  const currentUserEmail = useSelector((state) => state?.auth?.user?.email);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL"); // 'ALL' | 'ACTIVE' | 'DISABLED'
   const [busyUuid, setBusyUuid] = useState(null);
 
-  // sortKey: null | 'name' | 'phone' | 'role'
+  // sortKey: null | 'points' | 'name' | 'phone' | 'role'
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
@@ -72,7 +66,8 @@ export default function AdminUsersPage() {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDir("asc");
+      // "Points: High to Low" should place the highest points first by default.
+      setSortDir(key === "points" ? "desc" : "asc");
     }
     setSortMenuOpen(false);
   };
@@ -89,29 +84,6 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       toast.error(err?.data?.message || "Action failed");
-    } finally {
-      setBusyUuid(null);
-    }
-  };
-
-  const handleDelete = async (user) => {
-    if (user.email && user.email === currentUserEmail) {
-      toast.error("You can't delete your own account while logged in.");
-      return;
-    }
-
-    const displayName = user.username || user.email || "this user";
-    const confirmed = window.confirm(
-      `Delete ${displayName}? This action cannot be undone.`,
-    );
-    if (!confirmed) return;
-
-    setBusyUuid(user.uuid);
-    try {
-      await deleteUser(user.uuid).unwrap();
-      toast.success(`${displayName} was deleted`);
-    } catch (err) {
-      toast.error(err?.data?.message || "Delete failed");
     } finally {
       setBusyUuid(null);
     }
@@ -162,6 +134,16 @@ export default function AdminUsersPage() {
         const roleA = (a.role || "").toLowerCase();
         const roleB = (b.role || "").toLowerCase();
         const cmp = roleA.localeCompare(roleB);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    } else if (sortKey === "points") {
+      // Sort by the real numeric points value — "Points: High to Low" means
+      // highest first (default desc). Ties keep their existing order (the JS
+      // sort is stable).
+      result = [...result].sort((a, b) => {
+        const pointsA = Number(a.points) || 0;
+        const pointsB = Number(b.points) || 0;
+        const cmp = pointsA - pointsB;
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
@@ -441,15 +423,6 @@ export default function AdminUsersPage() {
                           ) : (
                             "Disable"
                           )}
-                        </button>
-
-                        <button
-                          disabled={isBusy}
-                          onClick={() => handleDelete(user)}
-                          title="Delete user"
-                          className="inline-flex items-center justify-center p-1.5 rounded-xl text-xs font-bold bg-neutral-100 text-neutral-500 hover:bg-red-50 hover:text-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
