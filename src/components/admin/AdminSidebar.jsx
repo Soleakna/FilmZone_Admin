@@ -1,13 +1,17 @@
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router";
 import {LayoutDashboard,Film,BarChart2,Building2,Users,ArrowLeft,LogOut,Popcorn} from "lucide-react";
-import { logout } from "../../redux/slices/authSlice";
+import { logout, selectCurrentUser } from "../../redux/slices/authSlice";
 import { baseApi } from "../../services/api/baseApi";
+import filmZoneLogo from "../../assets/logo/FilmZone_DarkModeLogo.png";
 
 export default function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  // The admin that actually logged in (fetched from the Cinema API during
+  // login via GET /users/me and stored in Redux auth state).
+  const user = useSelector(selectCurrentUser);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -36,15 +40,44 @@ export default function AdminSidebar() {
     }`;
   };
 
+  // Real admin identity from the API (state.auth.user). The API has no avatar
+  // photo field (verified against /users/schema), so the circle shows initials.
+  const adminDisplayName =
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+    user?.username?.trim() ||
+    user?.email ||
+    "Admin User";
+
+  const adminSubLabel =
+    user?.role
+      ? String(user.role).toUpperCase()
+      : user?.email || "Administrator";
+
+  const adminInitials = (() => {
+    if (!user) return "AD";
+    const first = (user.firstName || "").trim();
+    const last = (user.lastName || "").trim();
+    if (first || last) {
+      return `${first.charAt(0)}${last.charAt(0)}`.trim().toUpperCase() ||
+        "AD";
+    }
+    const username = (user.username || "").trim();
+    if (username) return username.slice(0, 2).toUpperCase();
+    const email = (user.email || "").trim();
+    return email ? email.slice(0, 2).toUpperCase() : "AD";
+  })();
+
   return (
     <aside className="w-full md:w-52 lg:w-56 bg-[#f4f5f8] border-r border-neutral-200 flex flex-col justify-between shrink-0 font-sans md:h-screen md:sticky md:top-0 z-30">
       <div className="flex flex-col flex-1 min-h-0">
         {/* Top Solid Red Header Banner (Edge to edge) */}
         <div className="bg-[#B90101] h-16 w-full flex items-center px-4.5 shadow-sm shrink-0">
           <Link to="/" className="flex items-center gap-1.5 group">
-            <span className="text-lg font-black italic text-white tracking-wider">
-              FILM<span className="text-amber-300">ZONE</span>
-            </span>
+            <img
+              src={filmZoneLogo}
+              alt="FilmZone"
+              className="h-8 w-auto object-contain shrink-0"
+            />
             <span className="text-[10px] font-black uppercase bg-black/30 text-white px-1.5 py-0.5 rounded ml-1">
               Admin
             </span>
@@ -99,17 +132,21 @@ export default function AdminSidebar() {
 
       <div className="flex items-center justify-between gap-2.5 shrink-0 bg-[#f4f5f8] sticky bottom-0 p-4 border-t border-neutral-200/80">
           <div className="flex items-center gap-2.5 min-w-0">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-              alt="Ratana Oudom"
-              className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
-            />
+            <span
+              className="flex items-center justify-center w-9 h-9 rounded-full border-2 border-white bg-[#B90101] text-white text-sm font-black shrink-0"
+              title={user?.email || adminDisplayName}
+            >
+              {adminInitials}
+            </span>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-extrabold text-neutral-900 leading-tight truncate">
-                Admin User
+              <span
+                className="text-xs font-extrabold text-neutral-900 leading-tight truncate"
+                title={user?.email || adminDisplayName}
+              >
+                {adminDisplayName}
               </span>
               <span className="text-[11px] font-semibold text-neutral-500 leading-tight truncate">
-                Ratana Oudom
+                {adminSubLabel}
               </span>
             </div>
           </div>
