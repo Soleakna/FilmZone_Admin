@@ -35,6 +35,50 @@ const extractErrorMessage = (err) => {
     : message;
 };
 
+// Recognises backend rejections caused by an existing seat label, so those
+// can be shown inline in the form instead of a Toastify popup.
+const isDuplicateSeatError = (err) => {
+  const status = err?.status;
+  const data = err?.data;
+  const message = String(
+    (typeof data === "string" ? data : "") ||
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      err?.error ||
+      "",
+  );
+  return (
+    status === 409 ||
+    (status >= 400 &&
+      /already\s+exist|duplicate|unique\s+constraint|already\s+taken|conflict/i.test(
+        message,
+      ))
+  );
+};
+
+// Best-effort: pull the seat label(s) (e.g. "A1") out of a backend error
+// message. Returns an empty array when no label can be found in the message.
+const extractSeatLabels = (err) => {
+  const data = err?.data;
+  const message = String(
+    (typeof data === "string" ? data : "") ||
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      err?.error ||
+      "",
+  );
+  const matches = message.match(/[A-Za-z]{1,4}\s?\d{1,4}/g) || [];
+  return [
+    ...new Set(
+      matches
+        .map((m) => m.replace(/\s/g, "").toUpperCase())
+        .filter((m) => /^[A-Z]{1,4}\d{1,4}$/.test(m)),
+    ),
+  ];
+};
+
 export function useSeatData(hallUuid, selectedSeatUuid = null) {
   const {
     data: seats = [],
@@ -77,11 +121,22 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
         created?.seatLabel ||
         `${seatData.rowLabel || ""}${seatData.seatNumber || ""}`.trim();
       toast.success(`Seat "${seatLabel || "New Seat"}" created!`);
-      return true;
+      return { created: true };
     } catch (err) {
       console.error("Create seat error:", err);
+
+      // Duplicate-seat errors are surfaced inline in the form (not Toastify).
+      if (isDuplicateSeatError(err)) {
+        const fromMessage = extractSeatLabels(err);
+        const attempted = `${seatData.rowLabel || ""}${seatData.seatNumber || ""}`.trim();
+        return {
+          created: false,
+          duplicateSeatLabel: fromMessage[0] || attempted || "",
+        };
+      }
+
       toast.error(extractErrorMessage(err));
-      return false;
+      return { created: false };
     }
   };
 
@@ -94,11 +149,26 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
         `Couple ${seatData.rowLabel || ""}${seatData.firstSeatNumber || ""}`
           .trim();
       toast.success(`Couple seat "${groupLabel || "New Couple"}" created!`);
-      return true;
+      return { created: true };
     } catch (err) {
       console.error("Create couple seat error:", err);
+
+      // Duplicate-seat errors are surfaced inline in the form (not Toastify).
+      if (isDuplicateSeatError(err)) {
+        const first = Number(seatData.firstSeatNumber) || 1;
+        const attempted = [
+          `${seatData.rowLabel || ""}${first}`.trim(),
+          `${seatData.rowLabel || ""}${first + 1}`.trim(),
+        ].filter(Boolean);
+        const fromMessage = extractSeatLabels(err);
+        return {
+          created: false,
+          duplicateSeatLabels: fromMessage.length ? fromMessage : attempted,
+        };
+      }
+
       toast.error(extractErrorMessage(err));
-      return false;
+      return { created: false };
     }
   };
 
@@ -107,11 +177,28 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
       const created = await createBulkSeats({ hallUuid, rows }).unwrap();
       const count = Array.isArray(created) ? created.length : rows.length;
       toast.success(`Created ${count} seat(s) in this hall!`);
-      return true;
+      return { created: true };
     } catch (err) {
       console.error("Bulk create seats error:", err);
+
+      // Duplicate-seat errors are surfaced inline in the form (not Toastify).
+      if (isDuplicateSeatError(err)) {
+        const attempted = rows.flatMap((row) => {
+          const start = Number(row.startSeatNumber) || 1;
+          const count = Math.max(Number(row.numberOfSeats) || 1, 1);
+          return Array.from({ length: count }, (_, i) =>
+            `${row.rowLabel || ""}${start + i}`.trim(),
+          ).filter(Boolean);
+        });
+        const fromMessage = extractSeatLabels(err);
+        return {
+          created: false,
+          duplicateSeatLabels: fromMessage.length ? fromMessage : attempted,
+        };
+      }
+
       toast.error(extractErrorMessage(err));
-      return false;
+      return { created: false };
     }
   };
 

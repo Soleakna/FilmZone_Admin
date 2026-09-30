@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Armchair,
   ArrowLeft,
+  CircleAlert,
   Eye,
   HeartHandshake,
   Layers,
@@ -43,6 +44,50 @@ const DEFAULT_BULK_ROW = {
   seatType: "STANDARD",
 };
 
+// Each row contains 12 seats; the allowed row letters depend on the hall's
+// capacity (e.g. 36 seats → A–C, 48 → A–D, 60 → A–E, 200 → A–Q).
+const SEATS_PER_ROW = 12;
+
+// Converts an uppercase label to its 1-based row index (A=1, B=2, … Z=26,
+// AA=27, …). Input must already pass the /^[A-Z]+$/ check.
+const rowLabelToIndex = (label) => {
+  let index = 0;
+  for (const ch of label) {
+    index = index * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return index;
+};
+
+// Inverse of rowLabelToIndex: 1 → "A", 26 → "Z", 27 → "AA", …
+const rowIndexToLabel = (index) => {
+  let n = index;
+  let label = "";
+  while (n > 0) {
+    n -= 1;
+    label = String.fromCharCode(65 + (n % 26)) + label;
+    n = Math.floor(n / 26);
+  }
+  return label;
+};
+
+// Live inline validation for a Row Label. Returns "" when the label is empty
+// or valid, otherwise the exact inline error message.
+const getRowLabelError = (value, capacity) => {
+  const label = (value || "").trim();
+  if (label === "") return "";
+  // Uppercase letters only — no numbers, lowercase, spaces or stray chars.
+  if (!/^[A-Z]+$/.test(label)) {
+    return "Row label must be an uppercase letter (A-Z).";
+  }
+  // The maximum allowed row letter derives from the hall capacity.
+  const maxRows = Math.ceil(Number(capacity) / SEATS_PER_ROW);
+  if (!Number.isFinite(maxRows) || maxRows < 1) return "";
+  if (rowLabelToIndex(label) > maxRows) {
+    return `Please enter a row label from A-${rowIndexToLabel(maxRows)}.`;
+  }
+  return "";
+};
+
 export default function AdminSeatsPage() {
   const { hallUuid } = useParams();
 
@@ -58,6 +103,14 @@ export default function AdminSeatsPage() {
   // Seat details modal (GET /seats/:uuid).
   const [seatDetailsOpen, setSeatDetailsOpen] = useState(false);
   const [selectedSeatUuid, setSelectedSeatUuid] = useState(null);
+
+  // Inline duplicate-seat errors (replaces the old Toastify duplicate alerts).
+  // Live duplicates are derived from the already-loaded `seats` list; these
+  // states only hold labels reported back by the API when the local list is
+  // momentarily stale.
+  const [normalSeatErrors, setNormalSeatErrors] = useState([]);
+  const [coupleSeatErrors, setCoupleSeatErrors] = useState([]);
+  const [bulkSeatErrors, setBulkSeatErrors] = useState([]);
 
   const {
     seats,
@@ -80,11 +133,30 @@ export default function AdminSeatsPage() {
     refetchSeatDetails,
   } = useSeatData(hallUuid, selectedSeatUuid);
 
-  const setField = (key) => (event) =>
+  const setField = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
+    // Editing the label fields clears any stale API-reported duplicate so the
+    // live check (from the loaded seats list) takes over immediately.
+    if (key === "rowLabel" || key === "seatNumber") setNormalSeatErrors([]);
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // A seat label that already exists in this hall is blocked up front — the
+    // matching inline error is already shown under the Seat Number field.
+    const label = buildSeatLabel(form.rowLabel, form.seatNumber);
+    const freshSeats = await refetchSeatsForCheck();
+    if (label && isTakenInList(label, freshSeats)) {
+      setNormalSeatErrors([]);
+      return;
+    }
+
+    // Row Label is already validated live (uppercase A–Z within the hall's
+    // capacity range) — this guard just stops the submission itself.
+    if (normalRowLabelError) {
+      return;
+    }
 
     const payload = {
       rowLabel: form.rowLabel.trim().toUpperCase(),
@@ -94,8 +166,15 @@ export default function AdminSeatsPage() {
       yPosition: Number(form.yPosition) || 0,
     };
 
-    const created = await handleCreateSeat(payload);
-    if (created) setForm(DEFAULT_FORM);
+    const result = await handleCreateSeat(payload);
+    if (result?.created) {
+      setForm(DEFAULT_FORM);
+      setNormalSeatErrors([]);
+    } else if (result?.duplicateSeatLabel) {
+      setNormalSeatErrors([result.duplicateSeatLabel]);
+      // Refresh the list so the already-existing seat becomes visible.
+      refetch();
+    }
   };
 
   const [coupleForm, setCoupleForm] = useState(DEFAULT_COUPLE_FORM);
@@ -106,16 +185,22 @@ export default function AdminSeatsPage() {
   // Bulk ("many seats at once") form — a dynamic list of row definitions.
   const [bulkRows, setBulkRows] = useState([{ ...DEFAULT_BULK_ROW }]);
 
-  const setBulkRowField = (index, key, value) =>
+  const setBulkRowField = (index, key, value) => {
     setBulkRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)),
     );
+    setBulkSeatErrors([]);
+  };
 
-  const addBulkRow = () =>
+  const addBulkRow = () => {
     setBulkRows((prev) => [...prev, { ...DEFAULT_BULK_ROW }]);
+    setBulkSeatErrors([]);
+  };
 
-  const removeBulkRow = (index) =>
+  const removeBulkRow = (index) => {
     setBulkRows((prev) => prev.filter((_, i) => i !== index));
+    setBulkSeatErrors([]);
+  };
 
   const totalBulkSeats = bulkRows.reduce(
     (sum, row) => sum + (Number(row.numberOfSeats) || 0),
@@ -143,23 +228,91 @@ export default function AdminSeatsPage() {
       return;
     }
 
-    const created = await handleCreateBulkSeats(rows);
-    if (created) setBulkRows([{ ...DEFAULT_BULK_ROW }]);
+    // Block when a row's seat-number range would exceed 12 (the per-row
+    // inline error under Start Seat Number explains the exact problem).
+    if (bulkSeatRangeErrors.some((err) => err)) {
+      return;
+    }
+
+    // Block when any generated label already exists — the per-row inline
+    // errors already identify exactly which labels conflict.
+    if (bulkDuplicateByRow.some((labels) => labels.length > 0)) {
+      setBulkSeatErrors([]);
+      return;
+    }
+
+    // Block when any row's label is invalid (uppercase A–Z within the hall's
+    // capacity range) — the per-row inline errors show the exact problem.
+    if (bulkRowLabelErrors.some((err) => err)) {
+      return;
+    }
+
+    // Re-sync the seats list so the duplicate check below is authoritative -
+    // a stale cached list can otherwise allow/block creates incorrectly.
+    const freshSeats = await refetchSeatsForCheck();
+    if (
+      getTakenLabels(bulkRows, freshSeats).some(
+        (labels) => labels.length > 0,
+      )
+    ) {
+      return;
+    }
+
+    const result = await handleCreateBulkSeats(rows);
+    if (result?.created) {
+      setBulkRows([{ ...DEFAULT_BULK_ROW }]);
+      setBulkSeatErrors([]);
+    } else if (result?.duplicateSeatLabels?.length) {
+      setBulkSeatErrors(result.duplicateSeatLabels);
+      // Refresh the list so the already-existing seats become visible.
+      refetch();
+    }
   };
 
-  const setCoupleField = (key) => (event) =>
+  const setCoupleField = (key) => (event) => {
     setCoupleForm((prev) => ({ ...prev, [key]: event.target.value }));
+    // Editing either couple label field clears any stale API-reported
+    // duplicate so the live check (from the loaded seats list) takes over.
+    if (key === "rowLabel" || key === "firstSeatNumber") {
+      setCoupleSeatErrors([]);
+    }
+  };
 
   const handleCoupleSubmit = async (event) => {
     event.preventDefault();
+
+    // Block if either of the two generated labels already exists — the inline
+    // errors under First Seat Number name the conflicting label(s).
+    const freshSeats = await refetchSeatsForCheck();
+    if (
+      [coupleFirstLabel, coupleSecondLabel].some((lbl) =>
+        isTakenInList(lbl, freshSeats),
+      )
+    ) {
+      setCoupleSeatErrors([]);
+      return;
+    }
+
+    // Row Label is already validated live (uppercase A–Z within the hall's
+    // capacity range) — this guard just stops the submission itself.
+    if (coupleRowLabelError) {
+      return;
+    }
 
     const payload = {
       rowLabel: coupleForm.rowLabel.trim().toUpperCase(),
       firstSeatNumber: Number(coupleForm.firstSeatNumber) || 1,
     };
 
-    const created = await handleCreateCoupleSeat(payload);
-    if (created) setCoupleForm(DEFAULT_COUPLE_FORM);
+    const result = await handleCreateCoupleSeat(payload);
+    if (result?.created) {
+      setCoupleForm(DEFAULT_COUPLE_FORM);
+      setCoupleSeatErrors([]);
+    } else if (result?.duplicateSeatLabels?.length) {
+      setCoupleSeatErrors(result.duplicateSeatLabels);
+      // Refresh the list so the already-existing seats become visible.
+      refetch();
+    }
   };
 
   const getHallName = (h) => h?.name || `Hall #${h?.uuid ?? h?.id ?? "?"}`;
@@ -175,6 +328,107 @@ export default function AdminSeatsPage() {
     const status = (s?.status || "ACTIVE").toUpperCase();
     return status === "ACTIVE" ? "ACTIVE" : "INACTIVE";
   };
+
+  // --- Inline duplicate-seat detection (reuses the already-loaded seats list) ---
+  // Builds the exact label the backend uses: row letter + number (e.g. "A1").
+  const buildSeatLabel = (rowLabel, seatNumber) => {
+    const row = (rowLabel || "").trim().toUpperCase();
+    const num = Number(seatNumber);
+    if (!row || !Number.isInteger(num) || num < 1) return "";
+    return `${row}${num}`;
+  };
+  const normalizeSeatLabel = (label) => (label || "").trim().toLowerCase();
+  const isTakenInList = (label, seatList) =>
+    label &&
+    (seatList || []).some(
+      (s) =>
+        normalizeSeatLabel(getSeatLabel(s)) === normalizeSeatLabel(label),
+    );
+  const isLabelTaken = (label) => isTakenInList(label, seats);
+
+  // Re-syncs the seats list right before a duplicate check so the decision is
+  // made against the freshest backend data (a stale cached list can otherwise
+  // cause confusing create failures).
+  const refetchSeatsForCheck = async () => {
+    const fresh = await refetch().catch(() => null);
+    return Array.isArray(fresh?.data) ? fresh.data : seats;
+  };
+
+  // Checks every label a set of bulk rows would generate against a seat list.
+  const getTakenLabels = (rowsData, seatList) =>
+    rowsData.map((row) => {
+      const start = Number(row.startSeatNumber) || 1;
+      const count = Math.max(Number(row.numberOfSeats) || 0, 0);
+      const taken = [];
+      for (let i = 0; i < count; i += 1) {
+        const lbl = buildSeatLabel(row.rowLabel, start + i);
+        if (lbl && isTakenInList(lbl, seatList)) taken.push(lbl);
+      }
+      return [...new Set(taken)];
+    });
+
+  // Normal seat — the exact label the form would create (e.g. "A1").
+  const normalSeatLabel = buildSeatLabel(form.rowLabel, form.seatNumber);
+  const normalDuplicateLabel =
+    normalSeatLabel && isLabelTaken(normalSeatLabel) ? normalSeatLabel : null;
+  const normalErrorLabels = [
+    ...new Set([normalDuplicateLabel, ...normalSeatErrors].filter(Boolean)),
+  ];
+
+  // Couple seat — it generates two labels: {row}{first} and {row}{first + 1}.
+  const coupleFirstLabel = buildSeatLabel(
+    coupleForm.rowLabel,
+    coupleForm.firstSeatNumber,
+  );
+  const coupleSecondLabel = buildSeatLabel(
+    coupleForm.rowLabel,
+    // Only build the second label when the first one is already valid —
+    // an empty/cleared number field must not create a phantom "A1" error.
+    coupleFirstLabel ? Number(coupleForm.firstSeatNumber) + 1 : 0,
+  );
+  const coupleLiveLabels = [coupleFirstLabel, coupleSecondLabel].filter(
+    (lbl) => lbl && isLabelTaken(lbl),
+  );
+  const coupleErrorLabels = [
+    ...new Set([...coupleLiveLabels, ...coupleSeatErrors].filter(Boolean)),
+  ];
+
+  // Bulk seats — every label each row will generate, flagged per row.
+  const bulkDuplicateByRow = getTakenLabels(bulkRows, seats);
+
+  // Seat-number range validation for bulk rows — seat numbers within a row
+  // must stay 1–12, i.e. Start + NumberOfSeats − 1 must not exceed 12.
+  const bulkSeatRangeErrors = bulkRows.map((row) => {
+    if (row.startSeatNumber === "" || row.startSeatNumber == null) return "";
+    const startSeat = Number(row.startSeatNumber);
+    if (!Number.isFinite(startSeat)) return "";
+    if (startSeat < 1) return "Start Seat Number must be between 1 and 12.";
+    const effectiveCount = Math.max(Number(row.numberOfSeats) || 1, 1);
+    if (startSeat + effectiveCount - 1 > 12) {
+      return "The seat numbers cannot exceed 12.";
+    }
+    return "";
+  });
+
+  // Switching tabs clears stale API-reported duplicate errors so they never
+  // resurface on a different form.
+  const switchSeatTab = (tab) => {
+    setActiveSeatTab(tab);
+    setNormalSeatErrors([]);
+    setCoupleSeatErrors([]);
+    setBulkSeatErrors([]);
+  };
+
+  // Row Label validation — allowed range derives from the hall's capacity.
+  const hallCapacity = hall?.capacity;
+  const normalRowLabelError = getRowLabelError(form.rowLabel, hallCapacity);
+  const coupleRowLabelError = getRowLabelError(
+    coupleForm.rowLabel,
+    hallCapacity,
+  );
+  const bulkRowLabelErrors = bulkRows.map((row) =>
+    getRowLabelError(row.rowLabel, hallCapacity),
+  );
 
   const handleToggleSeatStatus = async (seat) => {
     const uuid = seat?.uuid ?? seat?.id ?? seat?._id ?? seat?.seatUuid;
@@ -435,7 +689,7 @@ export default function AdminSeatsPage() {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setActiveSeatTab("NORMAL")}
+                  onClick={() => switchSeatTab("NORMAL")}
                   className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
                     activeSeatTab === "NORMAL"
                       ? "bg-[#b90101] text-white shadow-xs"
@@ -447,7 +701,7 @@ export default function AdminSeatsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveSeatTab("COUPLE")}
+                  onClick={() => switchSeatTab("COUPLE")}
                   className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
                     activeSeatTab === "COUPLE"
                       ? "bg-[#b90101] text-white shadow-xs"
@@ -459,7 +713,7 @@ export default function AdminSeatsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveSeatTab("BULK")}
+                  onClick={() => switchSeatTab("BULK")}
                   className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
                     activeSeatTab === "BULK"
                       ? "bg-[#b90101] text-white shadow-xs"
@@ -484,8 +738,14 @@ export default function AdminSeatsPage() {
                 placeholder="e.g. A"
                 required
                 maxLength={4}
-                className={inputClass}
+                className={`${inputClass} ${normalErrorLabels.length || normalRowLabelError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
               />
+              {normalRowLabelError && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                  <CircleAlert className="w-4 h-4 shrink-0" />
+                  <span>{normalRowLabelError}</span>
+                </p>
+              )}
             </div>
 
             {/* Seat Number — full width, same width as Row Label & button */}
@@ -497,8 +757,17 @@ export default function AdminSeatsPage() {
                 value={form.seatNumber}
                 onChange={setField("seatNumber")}
                 required
-                className={inputClass}
+                className={`${inputClass} ${normalErrorLabels.length ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
               />
+              {normalErrorLabels.length > 0 && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                  <CircleAlert className="w-4 h-4 shrink-0" />
+                  <span>
+                    Seat already exists with SeatLabel{" "}
+                    {normalErrorLabels.join(" ")}
+                  </span>
+                </p>
+              )}
             </div>
 
             {/* <div>
@@ -560,8 +829,14 @@ export default function AdminSeatsPage() {
                   placeholder="e.g. A"
                   required
                   maxLength={4}
-                  className={inputClass}
+                  className={`${inputClass} ${coupleErrorLabels.length || coupleRowLabelError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                 />
+                {coupleRowLabelError && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                    <CircleAlert className="w-4 h-4 shrink-0" />
+                    <span>{coupleRowLabelError}</span>
+                  </p>
+                )}
               </div>
 
               {/* First Seat Number — full width, on its own row */}
@@ -573,8 +848,17 @@ export default function AdminSeatsPage() {
                   value={coupleForm.firstSeatNumber}
                   onChange={setCoupleField("firstSeatNumber")}
                   required
-                  className={inputClass}
+                  className={`${inputClass} ${coupleErrorLabels.length ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                 />
+                {coupleErrorLabels.length > 0 && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                    <CircleAlert className="w-4 h-4 shrink-0" />
+                    <span>
+                      Seat already exists with SeatLabel{" "}
+                      {coupleErrorLabels.join(" ")}
+                    </span>
+                  </p>
+                )}
               </div>
 
               <button
@@ -595,6 +879,19 @@ export default function AdminSeatsPage() {
             {/* Bulk seats form (shown when the BULK tab is active) */}
             {activeSeatTab === "BULK" && (
               <div className="mt-5 space-y-4">
+                {/* API-reported duplicates (fallback when the local seats list
+                    is momentarily stale) */}
+                {bulkSeatErrors.length > 0 && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                      <CircleAlert className="w-4 h-4 shrink-0" />
+                      <span>
+                        Seat already exists with SeatLabel{" "}
+                        {bulkSeatErrors.join(" ")}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-3">
                   {bulkRows.map((row, index) => (
                     <div
@@ -628,8 +925,14 @@ export default function AdminSeatsPage() {
                             }
                             placeholder="e.g. A"
                             maxLength={4}
-                            className={inputClass}
+                            className={`${inputClass} ${bulkDuplicateByRow[index]?.length || bulkRowLabelErrors[index] ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                           />
+                          {bulkRowLabelErrors[index] && (
+                            <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                              <CircleAlert className="w-4 h-4 shrink-0" />
+                              <span>{bulkRowLabelErrors[index]}</span>
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className={labelClass}>Number of Seats</label>
@@ -644,12 +947,12 @@ export default function AdminSeatsPage() {
                                 e.target.value,
                               )
                             }
-                            className={inputClass}
+                            className={`${inputClass} ${bulkDuplicateByRow[index]?.length || bulkSeatRangeErrors[index] ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                           />
                         </div>
                         </div>
 
-                        {/* Start Seat Number — full width, same as Add Another Row */}
+                        {/* Start Seat Number — seat numbers must stay 1–12 */}
                         <div>
                           <label className={labelClass}>Start Seat Number</label>
                           <input
@@ -663,9 +966,25 @@ export default function AdminSeatsPage() {
                                 e.target.value,
                               )
                             }
-                            className={inputClass}
+                            className={`${inputClass} ${bulkSeatRangeErrors[index] ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                           />
+                          {bulkSeatRangeErrors[index] && (
+                            <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                              <CircleAlert className="w-4 h-4 shrink-0" />
+                              <span>{bulkSeatRangeErrors[index]}</span>
+                            </p>
+                          )}
                         </div>
+
+                        {bulkDuplicateByRow[index]?.length > 0 && (
+                          <p className="flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                            <CircleAlert className="w-4 h-4 shrink-0" />
+                            <span>
+                              Seat already exists with SeatLabel{" "}
+                              {bulkDuplicateByRow[index].join(" ")}
+                            </span>
+                          </p>
+                        )}
  
                       </div>
                     </div>

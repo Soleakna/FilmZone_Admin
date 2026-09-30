@@ -11,7 +11,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router";
-import { toast } from "react-toastify";
 import { useHallData } from "./hooks/useHallData";
 
 const inputClass =
@@ -65,18 +64,46 @@ export default function AdminHallsPage() {
   const setField = (key) => (event) =>
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
 
+  // Live duplicate-name check: as soon as the typed hall name matches an
+  // existing hall, flag it immediately so the admin is warned before they
+  // ever click "Create Hall". Comparison is case-insensitive and ignores
+  // surrounding whitespace.
+  const normalizedName = form.name.trim().toLowerCase();
+  const isDuplicateName =
+    normalizedName !== "" &&
+    halls.some(
+      (hall) => (hall?.name ?? "").trim().toLowerCase() === normalizedName,
+    );
+
+  // Live capacity validation. Returns the exact inline message, or "" when the
+  // value is a valid whole number between MIN_CAPACITY and MAX_CAPACITY.
+  const getCapacityError = (value) => {
+    if (value === "" || value === null || value === undefined) return "";
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "";
+    if (num < MIN_CAPACITY) return "There are at least 36 seats";
+    if (num > MAX_CAPACITY) return "The seat cannot be more than 200";
+    return "";
+  };
+  const capacityError = getCapacityError(form.capacity);
+  const editCapacityError = getCapacityError(editCapacity);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     const capacity = Number(form.capacity);
-    if (
-      !Number.isInteger(capacity) ||
-      capacity < MIN_CAPACITY ||
-      capacity > MAX_CAPACITY
-    ) {
-      toast.error(
-        `Invalid capacity: a hall can have ${MIN_CAPACITY} to ${MAX_CAPACITY} seats.`,
-      );
+
+    // Capacity rules are already flagged inline under the Capacity input
+    // (36–200). This guard just stops the submission itself — e.g. the form
+    // being submitted with an out-of-range or non-integer value.
+    if (capacityError || !Number.isInteger(capacity)) {
+      return;
+    }
+
+    // Duplicate names are already flagged inline while typing (the message
+    // shown directly underneath the Hall Name input). This guard just stops
+    // the submission itself so a duplicate is never sent to the backend.
+    if (isDuplicateName) {
       return;
     }
 
@@ -113,14 +140,10 @@ export default function AdminHallsPage() {
 
   const handleSaveCapacity = async () => {
     const capacity = Number(editCapacity);
-    if (
-      !Number.isInteger(capacity) ||
-      capacity < MIN_CAPACITY ||
-      capacity > MAX_CAPACITY
-    ) {
-      toast.error(
-        `Invalid capacity: a hall can have ${MIN_CAPACITY} to ${MAX_CAPACITY} seats.`,
-      );
+
+    // The inline error under the Capacity input already shows the exact
+    // problem; this guard just stops the save for invalid values.
+    if (editCapacityError || !Number.isInteger(capacity)) {
       return;
     }
 
@@ -319,8 +342,14 @@ export default function AdminHallsPage() {
                 onChange={setField("name")}
                 placeholder="e.g. Standard Hall 5"
                 required
-                className={inputClass}
+                className={`${inputClass} ${isDuplicateName ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
               />
+              {isDuplicateName && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  A hall with this name already exists. Please choose another name.
+                </p>
+              )}
             </div>
 
             <div>
@@ -362,8 +391,14 @@ export default function AdminHallsPage() {
                 onChange={setField("capacity")}
                 placeholder={`${MIN_CAPACITY} – ${MAX_CAPACITY} seats`}
                 required
-                className={inputClass}
+                className={`${inputClass} ${capacityError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
               />
+              {capacityError && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{capacityError}</span>
+                </p>
+              )}
             </div>
 
             <button
@@ -497,8 +532,14 @@ export default function AdminHallsPage() {
                 onChange={(event) => setEditCapacity(event.target.value)}
                 placeholder={`${MIN_CAPACITY} – ${MAX_CAPACITY} seats`}
                 required
-                className={inputClass}
+                className={`${inputClass} ${editCapacityError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
               />
+              {editCapacityError && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-600">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{editCapacityError}</span>
+                </p>
+              )}
               <p className="text-[11px] font-semibold text-neutral-400 mt-1">
                 Current: {getCapacity(hallToEdit)} seats · Between {MIN_CAPACITY}{" "}
                 and {MAX_CAPACITY} allowed.
