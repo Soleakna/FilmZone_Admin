@@ -94,7 +94,7 @@ export default function ConcessionsTable({
                     >
                       Edit
                     </button>
-                    {onToggleStatus && (
+                    {/* {onToggleStatus && (
                       <button
                         type="button"
                         onClick={() => onToggleStatus(item)}
@@ -103,7 +103,7 @@ export default function ConcessionsTable({
                       >
                         Toggle status
                       </button>
-                    )}
+                    )} */}
                     <button
                       type="button"
                       onClick={() => onDelete?.(item)}
