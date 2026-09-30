@@ -50,15 +50,14 @@ export default function AdminMovieLibraryPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      {/* 1. Header Title & Actions (the API panel renders its own header) */}
-      {activePanelId === "CINEMA_API" ? null : (
-        <MovieLibraryHeader
-          activePanelId={activePanelId}
-          managedMoviesCount={managedMovies.length}
-          onRestore100={handleRestore100Movies}
-          onClearAll={handleClearAll}
-        />
-      )}
+      {/* 1. Header Title & Actions — shared across Cinema Catalog, Cinema
+          Movies and Cinema Showtimes so every panel has the same header. */}
+      <MovieLibraryHeader
+        activePanelId={activePanelId}
+        managedMoviesCount={managedMovies.length}
+        onRestore100={handleRestore100Movies}
+        onClearAll={handleClearAll}
+      />
 
       {/* 2. Top Group & Panel Category Selector */}
       <MovieLibraryTabs

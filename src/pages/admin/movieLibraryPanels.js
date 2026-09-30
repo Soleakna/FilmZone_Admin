@@ -31,7 +31,7 @@ export const PANELS = [
     id: "CINEMA_API",
     group: "MANAGED",
     label: "Cinema Movies",
-    subLabel: "Backend API",
+    subLabel: "Movies from TMDB",
     endpoint: "Cinema Booking API",
     description:
       "Movies stored in the Cinema Booking API — import from TMDB, update status, delete.",
@@ -45,7 +45,7 @@ export const PANELS = [
     id: "CINEMA_SHOWTIMES",
     group: "MANAGED",
     label: "Cinema Showtimes",
-    subLabel: "Showtimes API",
+    subLabel: "Showtimes for booking",
     endpoint: "Cinema Booking API",
     description:
       "Showtimes stored in the Cinema Booking API — schedule movies in halls and inspect seat availability.",

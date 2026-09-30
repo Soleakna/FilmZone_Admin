@@ -160,59 +160,6 @@ export default function ShowtimeDetailsModal({
               <Clock className="w-9 h-9 text-white/90 absolute right-4 bottom-3" />
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-neutral-200/70 px-3.5 py-2.5 bg-white">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                Status
-              </span>
-              <span
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${statusBadgeClass(showtime.status)}`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${statusDotClass(showtime.status)}`}
-                />
-                {showtime.status || "—"}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/70 px-3.5 py-2.5 bg-white">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 whitespace-nowrap">
-                Set Status
-              </span>
-              <select
-                value={draftStatus}
-                onChange={(event) => setDraftStatus(event.target.value)}
-                className="flex-1 min-w-0 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-800 outline-none focus:border-[#b90101] cursor-pointer"
-              >
-                {SHOWTIME_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() =>
-                  onUpdateStatus({ uuid: showtime.uuid, status: draftStatus })
-                }
-                disabled={
-                  isUpdatingStatus ||
-                  draftStatus === (showtime?.status || "DRAFT") ||
-                  !showtime?.uuid
-                }
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#b90101] hover:brightness-110 text-white text-xs font-black whitespace-nowrap transition active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
-              >
-                {isUpdatingStatus ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : null}
-                {isUpdatingStatus ? "Saving…" : "Save"}
-              </button>
-            </div>
-            <p className="text-[10px] font-semibold text-neutral-400">
-              Status changes need the backend endpoint PATCH
-              /showtimes/{"{uuid}"}/status — the same pattern as halls,
-              movies and seats.
-            </p>
-
             <div className="grid grid-cols-2 gap-3">
               {entry("Movie", showtime.movieTitle)}
               {entry("Hall", showtime.hallName)}

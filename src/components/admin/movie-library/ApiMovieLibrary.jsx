@@ -137,7 +137,7 @@ export default function ApiMovieLibrary() {
             <div className="absolute bottom-0 left-0 w-24 h-1 bg-[#b90101] rounded-full" />
           </div>
           <p className="text-xs font-semibold text-neutral-500 mt-2 max-w-xl">
-            Movies stored in the Cinema Booking API — import new movies from
+            Movies in the Cinema Booking, import new movies from
             TMDB, change their status, or delete them.
           </p>
         </div>

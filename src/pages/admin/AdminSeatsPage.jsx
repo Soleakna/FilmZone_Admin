@@ -719,38 +719,38 @@ export default function AdminSeatsPage() {
                 <button
                   type="button"
                   onClick={() => switchSeatTab("NORMAL")}
-                  className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                  className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-bold transition cursor-pointer ${
                     activeSeatTab === "NORMAL"
                       ? "bg-[#b90101] text-white shadow-xs"
                       : "bg-neutral-100 hover:bg-neutral-200 text-neutral-700"
                   }`}
                 >
-                  <Armchair className="w-3.5 h-3.5" />
-                  <span>Normal Seat</span>
+                  {/* <Armchair className="w-3.5 h-3.5" /> */}
+                  <span>Single Seat</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => switchSeatTab("COUPLE")}
-                  className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                  className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-bold transition cursor-pointer ${
                     activeSeatTab === "COUPLE"
                       ? "bg-[#b90101] text-white shadow-xs"
                       : "bg-neutral-100 hover:bg-neutral-200 text-neutral-700"
                   }`}
                 >
-                  <HeartHandshake className="w-3.5 h-3.5" />
+                  {/* <HeartHandshake className="w-3.5 h-3.5" /> */}
                   <span>Couple Seat</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => switchSeatTab("BULK")}
-                  className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                  className={`w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-bold transition cursor-pointer ${
                     activeSeatTab === "BULK"
                       ? "bg-[#b90101] text-white shadow-xs"
                       : "bg-neutral-100 hover:bg-neutral-200 text-neutral-700"
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Bulk Seats</span>
+                  {/* <Layers className="w-3.5 h-3.5" /> */}
+                  <span>Multiples Seats</span>
                 </button>
               </div>
             </div>
