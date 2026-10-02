@@ -2,7 +2,16 @@
 import { useEffect, useState } from "react";
 
 // Match these values to the category enum in your backend.
-export const CONCESSION_CATEGORIES = ["FOOD", "DRINK", ]; //"SNACK", "COMBO"
+export const CONCESSION_CATEGORIES = ["FOOD", "DRINK", "COMBO"];
+
+// Human-friendly labels shown in the category dropdowns.
+export const CONCESSION_CATEGORY_LABELS = {
+  FOOD: "Food",
+  DRINK: "Drink",
+  COMBO: "Combo",
+};
+
+const categoryLabel = (c) => CONCESSION_CATEGORY_LABELS[c] ?? c;
 
 const EMPTY_FORM = {
   name: "",
@@ -161,7 +170,7 @@ export default function ConcessionFormModal({
                 >
                   {CONCESSION_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {categoryLabel(c)}
                     </option>
                   ))}
                 </select>

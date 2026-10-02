@@ -258,6 +258,7 @@ export default function ShowtimesManager() {
         onClose={() => setCreateOpen(false)}
         movies={movies}
         halls={allHalls}
+        showtimes={showtimes}
         isCreating={isCreating}
         onCreate={handleCreateShowtime}
       />

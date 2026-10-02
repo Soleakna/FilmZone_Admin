@@ -101,6 +101,15 @@ export function useShowtimesData() {
       return false;
     }
 
+    // Backend ShowtimeStatus. If this movie has no existing showtimes yet, it
+    // has not been shown — the new showtime MUST be created OPEN (not DRAFT)
+    // so customers can book it right away. Movies that already have showtimes
+    // keep the previous DRAFT default.
+    const movieNotShownYet = showtimes.every(
+      (st) => st?.movieUuid !== data.movieUuid,
+    );
+    const status = movieNotShownYet ? "OPEN" : data.status || "DRAFT";
+
     try {
       await createShowtime({
         movieUuid: data.movieUuid,
@@ -108,8 +117,7 @@ export function useShowtimesData() {
         showDate: data.showDate,
         showTime: data.showTime,
         basePrice,
-        // Backend ShowtimeStatus — DRAFT is the default for new showtimes.
-        status: data.status || "DRAFT",
+        status,
       }).unwrap();
       toast.success("Showtime created!");
       return true;

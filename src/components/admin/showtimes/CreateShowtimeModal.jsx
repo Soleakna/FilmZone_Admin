@@ -7,14 +7,12 @@ const inputClass =
 const labelClass =
   "block text-xs font-black uppercase tracking-wider text-neutral-600 mb-1.5";
 
-// Backend ShowtimeStatus enum — the only values the API accepts.
-const SHOWTIME_STATUSES = ["DRAFT", "OPEN", "CLOSED", "CANCELLED", "COMPLETED"];
-
 export default function CreateShowtimeModal({
   open,
   onClose,
   movies,
   halls,
+  showtimes,
   isCreating,
   onCreate,
 }) {
@@ -35,8 +33,25 @@ export default function CreateShowtimeModal({
 
   if (!open) return null;
 
-  const setField = (key) => (event) =>
-    setForm((prev) => ({ ...prev, [key]: event.target.value }));
+  // A movie that has no existing showtimes has not been shown yet, so its new
+  // showtime must default to OPEN (not DRAFT) so customers can book it.
+  const isMovieShown = (movieUuid) =>
+    (Array.isArray(showtimes) ? showtimes : []).some(
+      (st) => st?.movieUuid === movieUuid,
+    );
+
+  const setField = (key) => (event) => {
+    const value = event.target.value;
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      // When a movie is picked, auto-set its showtime status: not shown yet
+      // → OPEN, otherwise keep the DRAFT default.
+      if (key === "movieUuid" && value) {
+        next.status = isMovieShown(value) ? "DRAFT" : "OPEN";
+      }
+      return next;
+    });
+  };
 
   const activeHalls = (halls ?? []).filter(
     (h) => (h?.status || "ACTIVE").toUpperCase() === "ACTIVE",
@@ -179,6 +194,34 @@ export default function CreateShowtimeModal({
               />
             </div>
           </div>
+
+          {/* Status — auto-derived from whether the movie has been shown yet */}
+          {form.movieUuid && (
+            <>
+              <div className="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-200/70 px-3.5 py-2.5">
+                <span className="text-xs font-black uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#b90101]/40" />
+                  Showtime Status
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${
+                    form.status === "OPEN"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-neutral-200 text-neutral-600"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {form.status || "—"}
+                </span>
+              </div>
+              {form.status === "OPEN" && (
+                <p className="text-[11px] font-semibold text-emerald-700 mt-1">
+                  This movie hasn't been shown yet — the showtime will be
+                  created as OPEN so customers can book it right away.
+                </p>
+              )}
+            </>
+          )}
 
           <button
             type="submit"

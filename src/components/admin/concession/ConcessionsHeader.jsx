@@ -1,5 +1,8 @@
 
-import { CONCESSION_CATEGORIES } from "./ConcessionFormModal";
+import {
+  CONCESSION_CATEGORIES,
+  CONCESSION_CATEGORY_LABELS,
+} from "./ConcessionFormModal";
 
 export default function ConcessionsHeader({
   total = 0,
@@ -37,7 +40,7 @@ export default function ConcessionsHeader({
           <option value="">All categories</option>
           {CONCESSION_CATEGORIES.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {CONCESSION_CATEGORY_LABELS[c] ?? c}
             </option>
           ))}
         </select>

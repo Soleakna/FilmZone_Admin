@@ -1,8 +1,9 @@
+import { CONCESSION_CATEGORY_LABELS } from "./ConcessionFormModal";
+
 const CATEGORY_STYLES = {
   FOOD: "bg-amber-100 text-amber-800",
   DRINK: "bg-sky-100 text-sky-800",
-  // SNACK: "bg-emerald-100 text-emerald-800",
-  // COMBO: "bg-violet-100 text-violet-800",
+  COMBO: "bg-violet-100 text-violet-800",
 };
 
 const priceFormatter = new Intl.NumberFormat("en-US", {
@@ -77,7 +78,7 @@ export default function ConcessionsTable({
                       "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {item.category}
+                    {CONCESSION_CATEGORY_LABELS[item.category] ?? item.category}
                   </span>
                 </td>
 
