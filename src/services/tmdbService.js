@@ -1,7 +1,3 @@
-/**
- * Live TMDB Cloud API Service
- * Handles live searching, details, and fetching directly from TMDB's cloud servers.
- */
 
 // Reads from .env (Vite) or user-saved key in localStorage
 export const getTmdbApiKey = () => {
@@ -77,9 +73,6 @@ export async function searchLiveTmdb(query, page = 1) {
   }
 }
 
-/**
- * Fetch Full Movie Details (including exact duration runtime and genre names)
- */
 export async function fetchLiveTmdbDetails(tmdbId) {
   const key = getTmdbApiKey();
   const isBearer = key.length > 50;

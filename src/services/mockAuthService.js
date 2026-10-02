@@ -1,5 +1,4 @@
-// Mock Authentication & User Profile Service for FilmZone
-// Simulates user registration, login, and profile persistence via localStorage
+
 
 const MOCK_STORAGE_KEY = "filmzone_mock_users";
 
@@ -25,9 +24,6 @@ const MOCK_STORAGE_KEY = "filmzone_mock_users";
 //   },
 // ];
 
-/**
- * Retrieve all registered users (defaults + localStorage)
- */
 export const getStoredUsers = () => {
   try {
     const local = localStorage.getItem(MOCK_STORAGE_KEY);
@@ -42,9 +38,6 @@ export const getStoredUsers = () => {
   }
 };
 
-/**
- * Register a new user account and save to localStorage
- */
 export const registerUser = ({ fullName, email, password }) => {
   const users = getStoredUsers();
   const normalizedEmail = email.trim().toLowerCase();
@@ -82,9 +75,6 @@ export const registerUser = ({ fullName, email, password }) => {
   return { token, user: userProfile };
 };
 
-/**
- * Log in an existing user
- */
 export const loginUser = ({ email, password }) => {
   const users = getStoredUsers();
   const normalizedEmail = email.trim().toLowerCase();
@@ -104,9 +94,6 @@ export const loginUser = ({ email, password }) => {
   return { token, user: userProfile };
 };
 
-/**
- * Quick Google Login Simulation
- */
 export const googleLogin = () => {
   const users = getStoredUsers();
   const googleEmail = "google.user@filmzone.com";
@@ -131,9 +118,6 @@ export const googleLogin = () => {
   return { token, user: userProfile };
 };
 
-/**
- * Update stored user profile
- */
 export const updateStoredUser = (userId, data) => {
   const users = getStoredUsers();
   const index = users.findIndex((u) => u.id === userId);
@@ -146,9 +130,6 @@ export const updateStoredUser = (userId, data) => {
   return data;
 };
 
-/**
- * Delete a user from storage
- */
 export const deleteStoredUser = (userId) => {
   const users = getStoredUsers();
   const filtered = users.filter((u) => u.id !== userId);

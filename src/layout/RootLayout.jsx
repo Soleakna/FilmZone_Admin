@@ -1,8 +1,5 @@
 import { Outlet, ScrollRestoration } from "react-router";
 
-// RootLayout wraps the authentication pages (Login / Sign Up / Forgot Password).
-// The admin auth area is ALWAYS rendered in light mode, regardless of the
-// global app theme toggle.
 export default function RootLayout() {
   return (
     <div

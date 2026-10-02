@@ -178,10 +178,6 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
     } catch (err) {
       console.error("Create seat error:", err);
 
-      // Duplicate-seat errors are surfaced inline in the form (not Toastify).
-      // The reported label is always the exact label this request generates —
-      // never a label scraped from the backend message, which can reference a
-      // seat that is not part of this request (e.g. a phantom "A1").
       if (isDuplicateSeatError(err)) {
         const attempted =
           buildSeatLabel(seatData.rowLabel, seatData.seatNumber) || "";
@@ -201,8 +197,7 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
   };
 
   const handleCreateCoupleSeat = async (seatData) => {
-    // The couple pair occupies {row}{n} and {row}{n + 1}, so the first seat
-    // number must be a whole number between 1 and 11 to keep both ≤ 12.
+
     const guardError = validateCoupleSeatPayload(seatData);
     if (guardError) {
       toast.error(guardError);
@@ -220,12 +215,6 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
     } catch (err) {
       console.error("Create couple seat error:", err);
 
-      // Duplicate-seat errors are surfaced inline in the form (not Toastify).
-      // Only the labels this request actually generates can ever be reported.
-      // The pair always uses {row}{first} and {row}{first + 1} so the labels
-      // are derived from the form's FIRST seat number, and they are verified
-      // against the freshest seat list — a label scraped from the backend
-      // message (e.g. a phantom "A1" when requesting A5/A6) is never shown.
       if (isDuplicateSeatError(err)) {
         const first = Number(seatData.firstSeatNumber) || 1;
         const attempted = [
@@ -250,8 +239,6 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
   };
 
   const handleCreateBulkSeats = async (rows) => {
-    // Every generated label must stay inside each row's 1–12 seat numbers —
-    // invalid ranges are rejected before any request reaches the API.
     const guardError = validateBulkRowsPayload(rows);
     if (guardError) {
       toast.error(guardError);
@@ -265,11 +252,6 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
     } catch (err) {
       console.error("Bulk create seats error:", err);
 
-      // Duplicate-seat errors are surfaced inline in the form (not Toastify).
-      // Only the labels this request actually generates can ever be reported:
-      // {row}{start + i} for i in 0..count−1 of every row, verified against
-      // the freshest seat list. Labels scraped from the backend message (e.g.
-      // a phantom "A1" when requesting A5/A6) are never shown.
       if (isDuplicateSeatError(err)) {
         const attempted = rows.flatMap((row) =>
           generateSeatLabels(
@@ -297,8 +279,6 @@ export function useSeatData(hallUuid, selectedSeatUuid = null) {
     }
   };
 
-  // PATCH /seats/{uuid}/status — dedicated status endpoint.
-  // ACTIVE seats are bookable; INACTIVE seats are unavailable for booking.
   const handleUpdateSeatStatus = async (seat, status) => {
     const uuid = seat?.uuid ?? seat?.id ?? seat?._id ?? seat?.seatUuid;
     if (uuid === undefined || uuid === null) {

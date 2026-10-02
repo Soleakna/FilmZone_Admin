@@ -1,9 +1,5 @@
 import { baseApi } from "./baseApi";
 
-/**
- * Unwrap the common JSON envelopes returned by the Cinema Booking API.
- * Handles: raw array, { data: [...] }, { data: { items/results: [...] } }, etc.
- */
 const unwrapList = (response) => {
   if (!response) return [];
   if (Array.isArray(response)) return response;
@@ -63,7 +59,6 @@ export const hallApi = baseApi.injectEndpoints({
     }),
 
     // 5. PATCH /halls/:id/status — change a hall's status.
-    // Body: UpdateHallStatusRequest { status: "ACTIVE" | "INACTIVE" | ... }.
     updateHallStatus: builder.mutation({
       query: ({ id, status }) => ({
         url: `/halls/${id}/status`,

@@ -27,7 +27,6 @@ export const concessionApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: "Concession", id: "LIST" }],
     }),
 
-    // API uses PATCH, not PUT, for updates.
     updateConcession: builder.mutation({
       query: ({ uuid, ...body }) => ({
         url: `/concessions/${uuid}`,
@@ -40,7 +39,6 @@ export const concessionApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Shows/hides an item without deleting it.
     toggleConcessionStatus: builder.mutation({
       query: (uuid) => ({
         url: `/concessions/${uuid}/toggle-status`,
@@ -52,7 +50,6 @@ export const concessionApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Hard delete — the API's own "/permanent" path, cannot be undone.
     deleteConcession: builder.mutation({
       query: (uuid) => ({
         url: `/concessions/${uuid}/permanent`,

@@ -10,11 +10,8 @@ export default function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  // The admin that actually logged in (fetched from the Cinema API during
-  // login via GET /users/me and stored in Redux auth state).
   const user = useSelector(selectCurrentUser);
 
-  // Mobile drawer state — nav slides in over the content on small screens.
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => {
     setIsOpen(false);
@@ -22,10 +19,6 @@ export default function AdminSidebar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    // Wipe every cached API response (halls, movies, etc.) fetched under the
-    // previous session. Without this, the next login in the same tab keeps
-    // showing the old session's data (e.g. stale hall lists), and deleting
-    // those halls fails because they belong to the previous session's token.
     dispatch(baseApi.util.resetApiState());
     navigate("/login");
   };
@@ -46,8 +39,6 @@ export default function AdminSidebar() {
     }`;
   };
 
-  // Real admin identity from the API (state.auth.user). The API has no avatar
-  // photo field (verified against /users/schema), so the circle shows initials.
   const adminDisplayName =
     `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
     user?.username?.trim() ||

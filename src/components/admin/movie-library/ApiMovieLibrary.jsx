@@ -391,9 +391,7 @@ export default function ApiMovieLibrary() {
           </div>
         )}
       </div>
-      {/* Status dropdown menu — rendered fixed so the table's overflow scroll
-          container never clips it. Still passes the exact status value to the
-          unchanged handleUpdateStatus → PATCH /movies/{uuid}/status. */}
+      {/* Status dropdown menu */}
       {statusMenu && (
         <>
           <div

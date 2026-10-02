@@ -19,9 +19,6 @@ const inputClass =
 const labelClass =
   "block text-xs font-black uppercase tracking-wider text-neutral-600 mb-1.5";
 
-// Seat capacity rules: an admin can create a hall with anywhere from 36 up
-// to 200 seats. These are just the per-type starting values — the field is
-// editable, and anything outside 36–200 is rejected with a range message.
 const MIN_CAPACITY = 36;
 const MAX_CAPACITY = 200;
 
@@ -64,10 +61,6 @@ export default function AdminHallsPage() {
   const setField = (key) => (event) =>
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
 
-  // Live duplicate-name check: as soon as the typed hall name matches an
-  // existing hall, flag it immediately so the admin is warned before they
-  // ever click "Create Hall". Comparison is case-insensitive and ignores
-  // surrounding whitespace.
   const normalizedName = form.name.trim().toLowerCase();
   const isDuplicateName =
     normalizedName !== "" &&
@@ -75,8 +68,6 @@ export default function AdminHallsPage() {
       (hall) => (hall?.name ?? "").trim().toLowerCase() === normalizedName,
     );
 
-  // Live capacity validation. Returns the exact inline message, or "" when the
-  // value is a valid whole number between MIN_CAPACITY and MAX_CAPACITY.
   const getCapacityError = (value) => {
     if (value === "" || value === null || value === undefined) return "";
     const num = Number(value);
@@ -92,17 +83,10 @@ export default function AdminHallsPage() {
     event.preventDefault();
 
     const capacity = Number(form.capacity);
-
-    // Capacity rules are already flagged inline under the Capacity input
-    // (36–200). This guard just stops the submission itself — e.g. the form
-    // being submitted with an out-of-range or non-integer value.
     if (capacityError || !Number.isInteger(capacity)) {
       return;
     }
 
-    // Duplicate names are already flagged inline while typing (the message
-    // shown directly underneath the Hall Name input). This guard just stops
-    // the submission itself so a duplicate is never sent to the backend.
     if (isDuplicateName) {
       return;
     }
@@ -118,8 +102,6 @@ export default function AdminHallsPage() {
     if (created) setForm(DEFAULT_FORM);
   };
 
-  // When the admin picks a different hall type, move the seat count to that
-  // type's suggested default — but only if they haven't typed a custom value.
   const handleHallTypeChange = (event) => {
     const nextType = event.target.value;
     if (Number(form.capacity) === getAutoCapacity(form.hallType)) {
@@ -141,8 +123,6 @@ export default function AdminHallsPage() {
   const handleSaveCapacity = async () => {
     const capacity = Number(editCapacity);
 
-    // The inline error under the Capacity input already shows the exact
-    // problem; this guard just stops the save for invalid values.
     if (editCapacityError || !Number.isInteger(capacity)) {
       return;
     }

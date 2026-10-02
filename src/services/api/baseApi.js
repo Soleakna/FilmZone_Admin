@@ -4,7 +4,6 @@ const TMDB_API_BASE =
   import.meta.env.VITE_API_BASE_URL || "https://api.themoviedb.org/3";
 const TMDB_ACCESS_TOKEN = import.meta.env.VITE_TMDB_ACCESS_TOKEN;
 
-// Uses /cinema-api proxy in local development to bypass browser CORS
 const CINEMA_API_BASE =
   import.meta.env.VITE_CINEMA_API_BASE_URL ||
   (import.meta.env.DEV
@@ -29,7 +28,6 @@ const isCinemaApiEndpoint = (url) => {
   ].some((prefix) => url.startsWith(prefix));
 };
 
-// Base query for TMDB (Movies & TV streaming)
 const tmdbBaseQuery = fetchBaseQuery({
   baseUrl: TMDB_API_BASE,
   prepareHeaders: (headers) => {
@@ -41,7 +39,6 @@ const tmdbBaseQuery = fetchBaseQuery({
   },
 });
 
-// Base query for the Cinema Booking API (halls, auth, bookings, users, ...)
 const cinemaBaseQuery = fetchBaseQuery({
   baseUrl: CINEMA_API_BASE,
   prepareHeaders: (headers, { getState }) => {

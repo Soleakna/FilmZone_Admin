@@ -43,13 +43,11 @@ export default function AdminUsersPage() {
   const [filterStatus, setFilterStatus] = useState("ALL"); // 'ALL' | 'ACTIVE' | 'DISABLED'
   const [busyUuid, setBusyUuid] = useState(null);
 
-  // sortKey: null | 'points' | 'name' | 'phone' | 'role'
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortMenuRef = useRef(null);
 
-  // Close the dropdown when clicking anywhere outside it
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
@@ -62,11 +60,9 @@ export default function AdminUsersPage() {
 
   const handleSelectSort = (key) => {
     if (sortKey === key) {
-      // picking the same option again flips direction
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      // "Points: High to Low" should place the highest points first by default.
       setSortDir(key === "points" ? "desc" : "asc");
     }
     setSortMenuOpen(false);
@@ -137,9 +133,6 @@ export default function AdminUsersPage() {
         return sortDir === "asc" ? cmp : -cmp;
       });
     } else if (sortKey === "points") {
-      // Sort by the real numeric points value — "Points: High to Low" means
-      // highest first (default desc). Ties keep their existing order (the JS
-      // sort is stable).
       result = [...result].sort((a, b) => {
         const pointsA = Number(a.points) || 0;
         const pointsB = Number(b.points) || 0;

@@ -33,8 +33,7 @@ export default function CreateShowtimeModal({
 
   if (!open) return null;
 
-  // A movie that has no existing showtimes has not been shown yet, so its new
-  // showtime must default to OPEN (not DRAFT) so customers can book it.
+
   const isMovieShown = (movieUuid) =>
     (Array.isArray(showtimes) ? showtimes : []).some(
       (st) => st?.movieUuid === movieUuid,
@@ -44,8 +43,6 @@ export default function CreateShowtimeModal({
     const value = event.target.value;
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      // When a movie is picked, auto-set its showtime status: not shown yet
-      // → OPEN, otherwise keep the DRAFT default.
       if (key === "movieUuid" && value) {
         next.status = isMovieShown(value) ? "DRAFT" : "OPEN";
       }
@@ -158,7 +155,6 @@ export default function CreateShowtimeModal({
           </div>
 
           {/* Date + Time + Price */}
-          {/* Date + Time + Price */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className={labelClass}>Show Date</label>
@@ -195,7 +191,6 @@ export default function CreateShowtimeModal({
             </div>
           </div>
 
-          {/* Status — auto-derived from whether the movie has been shown yet */}
           {form.movieUuid && (
             <>
               <div className="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-200/70 px-3.5 py-2.5">

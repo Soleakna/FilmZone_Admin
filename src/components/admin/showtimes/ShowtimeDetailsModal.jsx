@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, AlertTriangle, RefreshCw, Clock } from "lucide-react";
 
-// Backend ShowtimeStatus enum — the only values the API accepts.
+
 const SHOWTIME_STATUSES = ["DRAFT", "OPEN", "CLOSED", "CANCELLED", "COMPLETED"];
 
 const formatDateTime = (iso) => {
@@ -47,7 +47,7 @@ export default function ShowtimeDetailsModal({
   onRetry,
   onClose,
 }) {
-  // Draft status being edited for this showtime (only applies on Save).
+
   const [draftStatus, setDraftStatus] = useState("DRAFT");
   useEffect(() => {
     if (open) {

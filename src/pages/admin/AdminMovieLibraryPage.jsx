@@ -50,8 +50,6 @@ export default function AdminMovieLibraryPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      {/* 1. Header Title & Actions — shared across Cinema Catalog, Cinema
-          Movies and Cinema Showtimes so every panel has the same header. */}
       <MovieLibraryHeader
         activePanelId={activePanelId}
         managedMoviesCount={managedMovies.length}
@@ -59,7 +57,6 @@ export default function AdminMovieLibraryPage() {
         onClearAll={handleClearAll}
       />
 
-      {/* 2. Top Group & Panel Category Selector */}
       <MovieLibraryTabs
         activeGroupTab={activeGroupTab}
         setActiveGroupTab={setActiveGroupTab}
@@ -73,7 +70,7 @@ export default function AdminMovieLibraryPage() {
         <ShowtimesManager />
       ) : (
         <>
-          {/* 3. Active Panel Banner, Sub-Filters & Search */}
+      
           <MovieLibraryFilters
             activePanel={activePanel}
             activePanelId={activePanelId}
@@ -96,7 +93,6 @@ export default function AdminMovieLibraryPage() {
             totalPages={totalPages}
           />
 
-          {/* 4. Main Content Table & Pagination */}
           <MovieLibraryTable
             items={displayItems}
             isLoading={isLoading}
@@ -114,7 +110,6 @@ export default function AdminMovieLibraryPage() {
             onPageChange={handlePageChange}
           />
 
-          {/* 5. Movie Modal for Custom Scheduling */}
           <MovieModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}

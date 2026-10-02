@@ -1,9 +1,5 @@
 import { baseApi } from "./baseApi";
 
-/**
- * Unwrap the common JSON envelopes returned by the Cinema Booking API.
- * Handles: raw array, { data: [...] }, { data: { items/results: [...] } }, etc.
- */
 const unwrapList = (response) => {
   if (!response) return [];
   if (Array.isArray(response)) return response;
@@ -72,9 +68,6 @@ export const seatApi = baseApi.injectEndpoints({
     }),
 
     // 4. DELETE /halls/:hallUuid/seats — remove every seat in a hall.
-    // Required before deleting a hall: the database blocks deleting a hall
-    // that still has seats referencing it (foreign-key constraint), which
-    // surfaces as a 500 error from the API otherwise.
     deleteAllSeats: builder.mutation({
       query: (hallUuid) => ({
         url: `/halls/${hallUuid}/seats`,
@@ -87,8 +80,6 @@ export const seatApi = baseApi.injectEndpoints({
     }),
 
     // 5. POST /halls/:hallUuid/seats/bulk — create many seats at once.
-    // Body: { rows: [{ rowLabel, startSeatNumber, numberOfSeats, seatType }] }
-    // Response: array of the created seats.
     createBulkSeats: builder.mutation({
       query: ({ hallUuid, rows }) => ({
         url: `/halls/${hallUuid}/seats/bulk`,
@@ -107,7 +98,6 @@ export const seatApi = baseApi.injectEndpoints({
       ],
     }),
   // 6. PATCH /seats/:uuid/status — change a seat's status.
-    // Body: UpdateSeatStatusRequest { status: "ACTIVE" | "INACTIVE" | ... }.
     updateSeatStatus: builder.mutation({
       query: ({ uuid, status }) => ({
         url: `/seats/${uuid}/status`,

@@ -78,8 +78,7 @@ export default function ShowtimesManager() {
     handleUpdateShowtimeStatus,
   } = useShowtimesData();
 
-  // Halls for the create form — the API returns every hall (including backend
-  // demo seeds), so hide the same seeded halls the Manage Halls page hides.
+
   const { data: rawHalls = [] } = useGetHallsQuery();
   const allHalls = hideSeededDemoHalls(rawHalls);
   const { data: moviesPage } = useGetMoviesQuery({ page: 0, size: 200 });

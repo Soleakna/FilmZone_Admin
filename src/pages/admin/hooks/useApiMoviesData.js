@@ -11,7 +11,6 @@ import {
 
 const PAGE_SIZE = 10;
 
-// Status values supported by the Cinema Booking API (MovieResponse.status).
 export const MOVIE_STATUSES = ["ACTIVE", "COMING_SOON", "INACTIVE", "ARCHIVED"];
 
 const extractErrorMessage = (err) => {
@@ -100,9 +99,8 @@ export function useApiMoviesData() {
   const firstPage = moviesPage?.first ?? currentPage === 0;
   const lastPage = moviesPage?.last ?? currentPage >= totalPages - 1;
 
-  // ---- Handlers ----
 
-  // POST /movies/import/{tmdbId} — creates the movie from TMDB data.
+
   const handleImportMovie = async (tmdbId, title) => {
     if (!tmdbId) {
       toast.error("Cannot import: the movie has no TMDB ID.");
@@ -119,7 +117,6 @@ export function useApiMoviesData() {
     }
   };
 
-  // PATCH /movies/{uuid}/status
   const handleUpdateStatus = async (movie, status) => {
     const uuid = getMovieUuid(movie);
     if (!uuid) {
@@ -155,7 +152,6 @@ export function useApiMoviesData() {
     }
   };
 
-  // DELETE /movies/{uuid}
   const handleDeleteMovie = async (movie) => {
     const uuid = getMovieUuid(movie);
     if (!uuid) {

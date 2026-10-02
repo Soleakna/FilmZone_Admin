@@ -24,8 +24,6 @@ const extractErrorMessage = (err) => {
         err?.error ||
         "Request failed. Check the Network tab for details.";
 
-  // For 5xx responses, surface the raw backend body too — the server usually
-  // says exactly what broke (e.g. a showtime still referencing the hall).
   const rawBody =
     err?.status >= 500 && data
       ? ` — ${typeof data === "string" ? data : JSON.stringify(data)}`
@@ -46,10 +44,6 @@ export function useHallData() {
     refetch,
   } = useGetHallsQuery();
 
-  // Show every real hall from the API, hiding only the backend demo seeds.
-  // (No owner data is returned by this API, so older halls the admin created
-  // before tracking existed must remain visible here — not filtered to the
-  // "created by me" registry, otherwise they'd disappear from the list.)
   const halls = hideSeededDemoHalls(rawHalls);
 
   const [createHall, { isLoading: isCreating }] = useCreateHallMutation();
@@ -72,8 +66,6 @@ export function useHallData() {
     }
   };
 
-  // PATCH /halls/{id} — partial update with just the new capacity.
-  // The page validates the 36–200 range before calling this.
   const handleUpdateCapacity = async (hall, capacity) => {
     const id = hall?.uuid ?? hall?.id ?? hall?._id ?? hall?.hallId;
     if (id === undefined || id === null) {
@@ -105,8 +97,6 @@ export function useHallData() {
     }
   };
 
-  // PATCH /halls/{id}/status — dedicated status endpoint (UpdateHallStatusRequest).
-  // ACTIVE allows booking/showtimes; INACTIVE blocks them.
   const handleUpdateStatus = async (hall, status) => {
     const id = hall?.uuid ?? hall?.id ?? hall?._id ?? hall?.hallId;
     if (id === undefined || id === null) {
@@ -157,26 +147,18 @@ export function useHallData() {
     } catch (err) {
       console.error("Delete hall error:", err);
 
-      // Hall no longer exists on the server (deleted from another login or by
-      // someone else) — drop the stale row from the list.
       if (err?.status === 404) {
         toast.warn(`"${name}" no longer exists on the server. Refreshing the list…`);
         refetch();
         return;
       }
 
-      // The hall belongs to a different login/account, so this session's token
-      // is not allowed to delete it.
       if (err?.status === 401 || err?.status === 403) {
         toast.error(
           `"${name}" is tied to a different admin login and cannot be deleted from this session. Only halls you create while logged in with this account can be deleted here.`,
         );
         return;
       }
-
-      // Internal server error. The most common cause: the hall still has seats
-      // (and/or showtimes) that reference it, so the database refuses to delete
-      // it. Remove the hall's seats first, then retry the deletion.
       if (err?.status === 500) {
         try {
           await deleteAllSeats(id).unwrap();
@@ -190,7 +172,6 @@ export function useHallData() {
           console.error("Retry delete hall error:", retryErr);
         }
 
-        // Re-fetch and confirm whether the hall is actually gone now.
         const refetched = await refetch().catch(() => ({ data: undefined }));
         const freshHalls = Array.isArray(refetched?.data) ? refetched.data : null;
         const stillThere = freshHalls

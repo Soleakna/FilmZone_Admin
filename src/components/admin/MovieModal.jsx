@@ -50,7 +50,6 @@ const mapApiHallToScheduleHall = (apiHall, branchName) => {
   };
 };
 
-// Format an ISO startTime/endTime from the Showtimes API into "hh:mm AM/PM".
 const formatShowtimeTime = (iso) => {
   if (!iso) return "—";
   try {
@@ -72,7 +71,6 @@ const showtimeStatusChip = (status) =>
         ? "bg-sky-100 text-sky-600"
         : "bg-red-100 text-red-600";
 
-// Build every branch's default hall list from the admin's real halls.
 const buildBranchesFromApiHalls = (apiHalls) =>
   AVAILABLE_BRANCHES.map((branchName, bi) => ({
     id: `branch-api-${bi + 1}`,
@@ -98,32 +96,22 @@ export default function MovieModal({
   );
   const [year, setYear] = useState("2026");
   const [tmdbId, setTmdbId] = useState(null);
-
-  // Dynamic Date Scheduling State
   const [startDate, setStartDate] = useState("2026-08-25");
   const [durationPreset, setDurationPreset] = useState("7");
   const [endDate, setEndDate] = useState("2026-09-01");
-
-  // Multi-Branch & Independent Day Schedules State
   const [branches, setBranches] = useState(() =>
     createDefaultBranchSchedules(),
   );
   const [selectedBranchIdx, setSelectedBranchIdx] = useState(0);
   const [newTimeInput, setNewTimeInput] = useState({});
-
-  // Active Date currently being edited by Admin
   const [activeDate, setActiveDate] = useState("2026-08-25");
 
-  // Real halls pulled from the Cinema API. Only the backend demo seeds are
-  // hidden — every real hall is shown in the schedule and the Add-Hall list.
   const { data: rawApiHalls = [] } = useGetHallsQuery();
   const apiHalls = useMemo(
     () => hideSeededDemoHalls(rawApiHalls),
     [rawApiHalls],
   );
-  // Only ACTIVE halls may be scheduled for movies / showtimes. INACTIVE halls
-  // are hidden from the defaults and the Add-Hall picker (missing status on
-  // older records counts as ACTIVE).
+ 
   const activeApiHalls = useMemo(
     () =>
       apiHalls.filter(
@@ -139,7 +127,6 @@ export default function MovieModal({
     [apiHalls],
   );
 
-  // Real showtimes from the Cinema Booking API, filtered to the active date.
   const {
     data: apiShowtimes = [],
     refetch: refetchShowtimes,
@@ -152,9 +139,6 @@ export default function MovieModal({
     [apiShowtimes, activeDate],
   );
 
-  // Publish (set to OPEN) a real showtime created in Cinema Showtimes, so the
-  // customer site exposes it for booking. Requires the backend's
-  // PATCH /showtimes/{uuid}/status endpoint (pending deployment).
   const [updateShowtimeStatus] = useUpdateShowtimeStatusMutation();
   const [publishingShowtimeUuid, setPublishingShowtimeUuid] = useState(null);
 
@@ -181,7 +165,6 @@ export default function MovieModal({
   };
   const [hydratedApiHalls, setHydratedApiHalls] = useState(false);
 
-  // Generated date list from start date and duration
   const generatedDates = useMemo(() => {
     const days =
       durationPreset === "custom"
@@ -261,10 +244,6 @@ export default function MovieModal({
     }
   }, [editingMovie, isOpen]);
 
-  // Once the API responds, replace the hard-coded template halls with the
-  // real halls (demo seeds hidden) for every branch's day-by-day schedule. We
-  // hydrate even when the filtered list is empty (instead of leaving the
-  // static default template halls behind).
   useEffect(() => {
     if (!editingMovie && !hydratedApiHalls && rawApiHalls.length > 0) {
       setBranches(buildBranchesFromApiHalls(activeApiHalls));
@@ -272,10 +251,8 @@ export default function MovieModal({
     }
   }, [editingMovie, hydratedApiHalls, rawApiHalls, activeApiHalls]);
 
-  // Current Branch
   const currentBranch = branches[selectedBranchIdx] || branches[0];
 
-  // Get active day's halls directly (MUST BE CALLED UNCONDITIONALLY BEFORE ANY RETURN)
   const activeDayHalls = useMemo(() => {
     return getHallsForDate(currentBranch, activeDate);
   }, [currentBranch, activeDate]);
@@ -537,7 +514,6 @@ export default function MovieModal({
     onClose();
   };
 
-  // EARLY RETURN PLACED RIGHT BEFORE RENDER (PREVENTING ANY HOOK RULES VIOLATION)
   if (!isOpen) return null;
 
   return (

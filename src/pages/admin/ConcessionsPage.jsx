@@ -81,7 +81,6 @@ export default function ConcessionsPage() {
     }
   };
 
-  // Hides/shows an item instead of deleting it (calls toggle-status).
   const handleToggleStatus = async (item) => {
     try {
       await toggleConcessionStatus(item.uuid).unwrap();

@@ -71,13 +71,9 @@ export function useShowtimesData() {
   const [createShowtime, { isLoading: isCreating }] =
     useCreateShowtimeMutation();
 
-  // PATCH /showtimes/{uuid}/status — change a showtime's status (DRAFT, OPEN,
-  // CLOSED, CANCELLED, COMPLETED). Uses the exact backend enum values.
   const [updateShowtimeStatus, { isLoading: isUpdatingStatus }] =
     useUpdateShowtimeStatusMutation();
 
-  // Validate + POST /showtimes. Input is the request-shaped payload:
-  // { movieUuid, hallUuid, showDate, showTime, basePrice, status }.
   const handleCreateShowtime = async (data) => {
     if (!data?.movieUuid) {
       toast.error("Please select a movie.");
@@ -101,10 +97,6 @@ export function useShowtimesData() {
       return false;
     }
 
-    // Backend ShowtimeStatus. If this movie has no existing showtimes yet, it
-    // has not been shown — the new showtime MUST be created OPEN (not DRAFT)
-    // so customers can book it right away. Movies that already have showtimes
-    // keep the previous DRAFT default.
     const movieNotShownYet = showtimes.every(
       (st) => st?.movieUuid !== data.movieUuid,
     );
@@ -128,8 +120,6 @@ export function useShowtimesData() {
     }
   };
 
-  // PATCH the exact backend value ("OPEN", not "open") via the existing
-  // /showtimes/{uuid}/status endpoint, then refresh the list + details.
   const handleUpdateShowtimeStatus = async ({ uuid, status }) => {
     if (!uuid || !status) return false;
     try {
@@ -142,11 +132,7 @@ export function useShowtimesData() {
       return true;
     } catch (err) {
       console.error("Update showtime status error:", err);
-      // The deployed Cinema Booking API does not expose the showtime status
-      // endpoint yet (v3/api-docs lists only GET/POST /showtimes, GET
-      // /showtimes/{uuid} and GET /showtimes/{uuid}/seats). A 404/405 means
-      // the route is missing — mirroring PATCH /halls/{uuid}/status would
-      // enable this UI.
+
       if (err?.status === 404 || err?.status === 405) {
         toast.error(
           "Cannot change showtime status: the Cinema Booking API does not expose PATCH /showtimes/{uuid}/status yet. Add that endpoint on the backend (mirror PATCH /halls/{uuid}/status) and retry.",
